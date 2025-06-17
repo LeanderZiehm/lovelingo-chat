@@ -19,3 +19,7 @@ http://127.0.0.1:5000
 # dev 
 to add more personas add to personas.json and iamge under static/persona_images
 
+
+# todo 
+
+add a chat icon like whatsapp call or chatgpt and have voice unctionality that shows image full screen.
