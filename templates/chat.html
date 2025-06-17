@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat with {{ persona.name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="chat-container">
+        <div class="header">
+            <img src="{{ url_for('static', filename=persona.image) }}" alt="{{ persona.name }}">
+            <h2>{{ persona.name }}</h2>
+        </div>
+        <div class="messages">
+            {% if user_message %}
+            <div class="message user">{{ user_message }}</div>
+            {% endif %}
+            {% if response %}
+            <div class="message persona">{{ response }}</div>
+            {% endif %}
+        </div>
+        <form method="post">
+            <input type="text" name="message" placeholder="Type a message..." required autofocus>
+            <button type="submit">Send</button>
+        </form>
+    </div>
+</body>
+</html>
