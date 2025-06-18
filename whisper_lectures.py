@@ -1,4 +1,5 @@
 import os
+import math
 import subprocess
 from openai import OpenAI
 
@@ -7,7 +8,8 @@ from openai import OpenAI
 API_KEY   = "my-key"
 BASE_URL  = "https://whisper.leanderziehm.com/v1/"
 MODEL     = "Systran/faster-whisper-tiny"
-CHUNK_SEC = 30           # length of each chunk in seconds
+CHUNK_SEC = 30           # length of each chunk in seconds (new content per chunk)
+OVERLAP   = 5            # seconds of overlap between consecutive chunks
 TMP_DIR   = "/tmp/whisper_chunks"
 
 # --- PATHS ----------------------------------------------------------
@@ -33,26 +35,46 @@ for fn in os.listdir(audio_dir):
 
     print(f"\n--- Transcribing «{fn}» → {out_txt_path}")
 
-    # --- 1) Use ffmpeg to split into WAV chunks ----------------------
-    # e.g. /tmp/whisper_chunks/chunk000.wav, chunk001.wav, ...
-    cmd = [
-        "ffmpeg",
-        "-i", mp3_path,
-        "-f", "segment",
-        "-segment_time", str(CHUNK_SEC),
-        "-c:a", "pcm_s16le",
-        os.path.join(TMP_DIR, lecture_name + "_chunk%03d.wav")
-    ]
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    # --- 1) Probe total duration with ffprobe ----------------------
+    proc = subprocess.run([
+        "ffprobe", "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        mp3_path
+    ], capture_output=True, text=True, check=True)
+    total_dur = float(proc.stdout.strip())
+    n_chunks  = math.ceil(total_dur / CHUNK_SEC)
 
-    # --- 2) Transcribe each chunk in order --------------------------
+    # --- 2) Split into WAV chunks with overlap ----------------------
+    chunks = []
+    for i in range(n_chunks):
+        # compute start time (with overlap)
+        start = max(0, i * CHUNK_SEC - OVERLAP)
+        # compute length: CHUNK_SEC of new + overlaps (but trim at file end)
+        length = CHUNK_SEC
+        if i > 0:
+            length += OVERLAP
+        if i < n_chunks - 1:
+            length += OVERLAP
+        if start + length > total_dur:
+            length = total_dur - start
+
+        out_fn   = f"{lecture_name}_chunk{i:03d}.wav"
+        out_path = os.path.join(TMP_DIR, out_fn)
+
+        cmd = [
+            "ffmpeg",
+            "-ss", str(start),
+            "-t",  str(length),
+            "-i",  mp3_path,
+            "-c:a","pcm_s16le",
+            out_path
+        ]
+        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        chunks.append(out_fn)
+
+    # --- 3) Transcribe each chunk in order --------------------------
     full_transcript = []
-    # find all chunk files, sorted by index
-    chunks = sorted([
-        f for f in os.listdir(TMP_DIR)
-        if f.startswith(lecture_name + "_chunk") and f.endswith(".wav")
-    ])
-
     for idx, chunk_fn in enumerate(chunks, 1):
         chunk_path = os.path.join(TMP_DIR, chunk_fn)
         print(f"  • chunk {idx}/{len(chunks)} ({chunk_fn})…", end=" ")
@@ -72,7 +94,7 @@ for fn in os.listdir(audio_dir):
         full_transcript.append(text)
         os.remove(chunk_path)
 
-    # --- 3) Write out assembled transcript ---------------------------
+    # --- 4) Write out assembled transcript ---------------------------
     with open(out_txt_path, "w", encoding="utf-8") as out_f:
         out_f.write("\n\n".join(full_transcript))
 
