@@ -2,6 +2,7 @@ import os
 import math
 import subprocess
 import time
+import concurrent.futures
 from openai import OpenAI
 
 # --- CONFIGURATION --------------------------------------------------
@@ -20,6 +21,15 @@ os.makedirs(TMP_DIR, exist_ok=True)
 
 # --- INITIALIZE CLIENT ---------------------------------------------
 client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
+
+# --- TRANSCRIPTION FUNCTION ----------------------------------------
+def transcribe_chunk(chunk_path):
+    with open(chunk_path, "rb") as fh:
+        resp = client.audio.transcriptions.create(
+            model=MODEL,
+            file=fh
+        )
+        return resp.text.strip()
 
 # --- PROCESS EACH MP3 ----------------------------------------------
 for fn in os.listdir(audio_dir):
@@ -73,7 +83,7 @@ for fn in os.listdir(audio_dir):
         print(f"  • Chunk {i+1}/{n_chunks} split in {split_time:.2f}s")
     timings['split_durations'] = split_timings
 
-    # 3) Transcribe each chunk
+    # 3) Transcribe each chunk with 2-minute timeout
     full_transcript = []
     transcribe_timings = []
     for idx, chunk_fn in enumerate(chunks, 1):
@@ -81,19 +91,20 @@ for fn in os.listdir(audio_dir):
         print(f"  • chunk {idx}/{len(chunks)} ({chunk_fn})…", end=" ")
 
         t0 = time.perf_counter()
-        with open(chunk_path, "rb") as fh:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(transcribe_chunk, chunk_path)
             try:
-                resp = client.audio.transcriptions.create(
-                    model=MODEL,
-                    file=fh
-                )
-                text = resp.text.strip()
+                text = future.result(timeout=120)  # 2 minutes timeout
                 print("OK")
+            except concurrent.futures.TimeoutError:
+                text = f"[TIMEOUT chunk {idx}: exceeded 2-minute limit]\n"
+                print("TIMEOUT")
             except Exception as e:
                 text = f"[ERROR chunk {idx}: {e}]\n"
                 print("FAILED")
+
         duration = time.perf_counter() - t0
-        print(f"took: {duration}")
+        print(f"took: {duration:.2f}s")
         transcribe_timings.append(duration)
         full_transcript.append(text)
 
