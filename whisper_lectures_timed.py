@@ -45,7 +45,7 @@ def get_audio_duration(mp3_path: str) -> float:
         mp3_path
     ], capture_output=True, text=True, check=True)
     return float(proc.stdout.strip())
-
+@timer
 def calculate_chunk_params(total_duration: float, chunk_sec: int, overlap: int) -> List[Tuple[float, float, int]]:
     """Calculate start time, length, and chunk index for each audio chunk"""
     n_chunks = math.ceil(total_duration / chunk_sec)
@@ -68,7 +68,7 @@ def calculate_chunk_params(total_duration: float, chunk_sec: int, overlap: int) 
     
     return chunks
 
-@timer
+
 def create_audio_chunk(mp3_path: str, start: float, length: float, chunk_idx: int, 
                       lecture_name: str, tmp_dir: str) -> str:
     """Create a single audio chunk from the original file"""
@@ -96,29 +96,40 @@ def create_all_chunks(mp3_path: str, chunk_params: List[Tuple[float, float, int]
         chunks.append(chunk_fn)
     return chunks
 
-def transcribe_chunk(chunk_path: str, chunk_idx: int, total_chunks: int, 
-                    client: OpenAI, model: str) -> str:
-    """Transcribe a single audio chunk"""
+
+import os
+import concurrent.futures
+@timer
+def transcribe_chunk(chunk_path: str, chunk_idx: int, total_chunks: int,
+                     client, model: str, timeout_sec: int = 120) -> str:
+    """Transcribe a single audio chunk with timeout support."""
     chunk_fn = os.path.basename(chunk_path)
     print(f"  • chunk {chunk_idx + 1}/{total_chunks} ({chunk_fn})…", end=" ")
-    
-    try:
+
+    def do_transcription():
         with open(chunk_path, "rb") as fh:
             resp = client.audio.transcriptions.create(
                 model=model,
                 file=fh
             )
-            text = resp.text.strip()
+            return resp.text.strip()
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(do_transcription)
+            text = future.result(timeout=timeout_sec)
             print("OK")
             return text
+    except concurrent.futures.TimeoutError:
+        print("SKIPPED (timeout)")
+        return f"[SKIP_CHUNK_{chunk_idx + 1}]"
     except Exception as e:
-        text = f"[ERROR chunk {chunk_idx + 1}: {e}]\n"
         print("FAILED")
-        return text
+        return f"[ERROR chunk {chunk_idx + 1}: {e}]"
     finally:
-        # Clean up chunk file
         if os.path.exists(chunk_path):
             os.remove(chunk_path)
+
 
 @timer
 def transcribe_chunks_sequential(chunk_files: List[str], tmp_dir: str, client: OpenAI, model: str) -> List[str]:
