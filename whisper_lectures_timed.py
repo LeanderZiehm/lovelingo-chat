@@ -93,6 +93,7 @@ for fn in os.listdir(audio_dir):
                 text = f"[ERROR chunk {idx}: {e}]\n"
                 print("FAILED")
         duration = time.perf_counter() - t0
+        print(f"took: {duration}")
         transcribe_timings.append(duration)
         full_transcript.append(text)
 
