@@ -2,10 +2,9 @@ import os
 import math
 import subprocess
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import wraps
 from dataclasses import dataclass
-from typing import List, Tuple, Optional
+from typing import List, Tuple
 from openai import OpenAI
 
 # --- CONFIGURATION --------------------------------------------------
@@ -19,22 +18,10 @@ class Config:
     OVERLAP: int = 5
     TMP_DIR: str = "/tmp/whisper_chunks"
     AUDIO_DIR: str = "static/lecture_recordings"
-    MAX_WORKERS: int = 4  # Number of parallel transcription workers
 
 # --- TIMING DECORATOR -----------------------------------------------
 
 def timer(func):
-    """Decorator to time function execution"""
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        start_time = time.time()
-        result = func(*args, **kwargs)
-        end_time = time.time()
-        print(f"⏱ {func.__name__} took {end_time - start_time:.2f} seconds")
-        return result
-    return wrapper
-
-def detailed_timer(func):
     """Decorator to time function execution with detailed info"""
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -99,7 +86,7 @@ def create_audio_chunk(mp3_path: str, start: float, length: float, chunk_idx: in
     subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     return out_fn
 
-@detailed_timer
+@timer
 def create_all_chunks(mp3_path: str, chunk_params: List[Tuple[float, float, int]], 
                      lecture_name: str, tmp_dir: str) -> List[str]:
     """Create all audio chunks sequentially"""
@@ -109,9 +96,8 @@ def create_all_chunks(mp3_path: str, chunk_params: List[Tuple[float, float, int]
         chunks.append(chunk_fn)
     return chunks
 
-@timer
 def transcribe_chunk(chunk_path: str, chunk_idx: int, total_chunks: int, 
-                    client: OpenAI, model: str) -> Tuple[int, str]:
+                    client: OpenAI, model: str) -> str:
     """Transcribe a single audio chunk"""
     chunk_fn = os.path.basename(chunk_path)
     print(f"  • chunk {chunk_idx + 1}/{total_chunks} ({chunk_fn})…", end=" ")
@@ -124,44 +110,23 @@ def transcribe_chunk(chunk_path: str, chunk_idx: int, total_chunks: int,
             )
             text = resp.text.strip()
             print("OK")
-            return chunk_idx, text
+            return text
     except Exception as e:
         text = f"[ERROR chunk {chunk_idx + 1}: {e}]\n"
         print("FAILED")
-        return chunk_idx, text
+        return text
     finally:
         # Clean up chunk file
         if os.path.exists(chunk_path):
             os.remove(chunk_path)
 
-@detailed_timer
-def transcribe_chunks_parallel(chunk_files: List[str], tmp_dir: str, client: OpenAI, 
-                              model: str, max_workers: int) -> List[str]:
-    """Transcribe all chunks in parallel"""
-    chunk_paths = [os.path.join(tmp_dir, chunk_fn) for chunk_fn in chunk_files]
-    transcripts = [""] * len(chunk_files)  # Pre-allocate to maintain order
-    
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        # Submit all transcription tasks
-        future_to_idx = {
-            executor.submit(transcribe_chunk, chunk_path, idx, len(chunk_files), client, model): idx
-            for idx, chunk_path in enumerate(chunk_paths)
-        }
-        
-        # Collect results as they complete
-        for future in as_completed(future_to_idx):
-            idx, text = future.result()
-            transcripts[idx] = text
-    
-    return transcripts
-
-@detailed_timer
+@timer
 def transcribe_chunks_sequential(chunk_files: List[str], tmp_dir: str, client: OpenAI, model: str) -> List[str]:
-    """Transcribe all chunks sequentially (fallback option)"""
+    """Transcribe all chunks sequentially"""
     transcripts = []
     for idx, chunk_fn in enumerate(chunk_files):
         chunk_path = os.path.join(tmp_dir, chunk_fn)
-        _, text = transcribe_chunk(chunk_path, idx, len(chunk_files), client, model)
+        text = transcribe_chunk(chunk_path, idx, len(chunk_files), client, model)
         transcripts.append(text)
     return transcripts
 
@@ -171,7 +136,7 @@ def save_transcript(transcript_parts: List[str], output_path: str) -> None:
     with open(output_path, "w", encoding="utf-8") as out_f:
         out_f.write("\n\n".join(transcript_parts))
 
-@detailed_timer
+@timer
 def process_single_file(mp3_path: str, lecture_name: str, config: Config, client: OpenAI) -> None:
     """Process a single MP3 file from start to finish"""
     transcript_dir = os.path.join(config.AUDIO_DIR, "transcripts")
@@ -188,14 +153,8 @@ def process_single_file(mp3_path: str, lecture_name: str, config: Config, client
     # Create audio chunks
     chunk_files = create_all_chunks(mp3_path, chunk_params, lecture_name, config.TMP_DIR)
     
-    # Transcribe chunks (parallel by default, sequential as fallback)
-    try:
-        transcripts = transcribe_chunks_parallel(
-            chunk_files, config.TMP_DIR, client, config.MODEL, config.MAX_WORKERS
-        )
-    except Exception as e:
-        print(f"⚠ Parallel transcription failed ({e}), falling back to sequential...")
-        transcripts = transcribe_chunks_sequential(chunk_files, config.TMP_DIR, client, config.MODEL)
+    # Transcribe chunks sequentially
+    transcripts = transcribe_chunks_sequential(chunk_files, config.TMP_DIR, client, config.MODEL)
     
     # Save transcript
     save_transcript(transcripts, out_txt_path)
@@ -220,7 +179,7 @@ def get_mp3_files(audio_dir: str) -> List[Tuple[str, str]]:
 
 # --- MAIN EXECUTION -------------------------------------------------
 
-@detailed_timer
+@timer
 def main():
     """Main execution function"""
     config = Config()
