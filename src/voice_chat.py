@@ -27,7 +27,7 @@ FFMPEG_TIMEOUT = 30  # seconds
 WHISPER_TIMEOUT = 30  # seconds
 
 
-@voice_chat_bp.route('/', methods=['Get'])
+@voice_chat_bp.route('/voice_chat', methods=['Get'])
 def index():
     return render_template('voice_chat.html')
 

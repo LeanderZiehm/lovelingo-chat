@@ -1,4 +1,3 @@
-# transcribe.py
 from flask import Blueprint, request, jsonify
 from openai import OpenAI
 from tempfile import NamedTemporaryFile
@@ -25,18 +24,19 @@ def transcribe():
         webm_path = source_temp.name
         webm_file.save(webm_path)
 
-    with NamedTemporaryFile(suffix=".mp3", delete=False) as target_temp:
-        mp3_path = target_temp.name
+    with NamedTemporaryFile(suffix=".ogg", delete=False) as target_temp:
+        ogg_path = target_temp.name
 
     try:
+        # Convert WebM to OGG using libvorbis codec
         ffmpeg_cmd = [
             "ffmpeg", "-y",
             "-i", webm_path,
             "-vn",
-            "-ar", "16000",
-            "-ac", "1",
-            "-f", "mp3",
-            mp3_path
+            "-ar", "16000",  # 16 kHz sample rate
+            "-ac", "1",       # Mono
+            "-c:a", "libvorbis",
+            ogg_path
         ]
 
         ffmpeg_result = subprocess.run(
@@ -52,7 +52,7 @@ def transcribe():
                 "ffmpeg_output": error_output
             }), 500
 
-        with open(mp3_path, "rb") as f:
+        with open(ogg_path, "rb") as f:
             response = client.audio.transcriptions.create(
                 model=model,
                 file=f
@@ -65,6 +65,6 @@ def transcribe():
     finally:
         try:
             os.remove(webm_path)
-            os.remove(mp3_path)
-        except:
+            os.remove(ogg_path)
+        except Exception:
             pass

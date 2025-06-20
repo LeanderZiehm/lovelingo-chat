@@ -19,9 +19,9 @@ app.register_blueprint(chat_bp)
 app.register_blueprint(transcribe_bp)  # register the blueprint
 app.register_blueprint(voice_chat_bp)  # register the voice chat blueprint
 
-# @app.route('/')
-# def index():
-#     return render_template('index.html')
+@app.route('/')
+def index():
+    return render_template('transcribe.html')
 
 if __name__ == '__main__':
     app.run(debug=True)

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Transcription (Teleprompter Style)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-image: url('static/persona_images/luna.png');
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    #subtitles {
+      font-size: 2em;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 10px 20px;
+      border-radius: 10px;
+      max-width: 90%;
+      text-align: center;
+      margin-bottom: 40px;
+      transition: opacity 0.3s ease;
+    }
+
+    .controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+    }
+
+    button {
+      font-size: 1em;
+      padding: 10px 15px;
+      margin-right: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="subtitles">Press Start to Begin</div>
+
+  <div class="controls">
+    <button id="start">Start</button>
+    <button id="stop">Stop</button>
+  </div>
+
+<script>
+if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+  alert("Your browser doesn't support WebM recording with Opus codec.");
+}
+
+
+  let mediaRecorder;
+  let interval;
+  const subtitles = document.getElementById('subtitles');
+
+  document.getElementById("start").onclick = async () => {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+    // Use WebM format
+    mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus' // WebM format with Opus codec
+    });
+
+    mediaRecorder.ondataavailable = async (e) => {
+      if (e.data.size > 0) {
+        const formData = new FormData();
+        formData.append("audio", e.data, "clip.webm"); // Save as .webm
+
+        try {
+          const response = await fetch("/transcribe", {
+            method: "POST",
+            body: formData
+          });
+
+          const result = await response.json();
+          if (result.text) {
+            subtitles.innerText = result.text.trim();
+          } else {
+            console.error("Error:", result.error);
+          }
+        } catch (err) {
+          console.error("Fetch failed:", err);
+        }
+      }
+    };
+
+    mediaRecorder.start();
+
+    interval = setInterval(() => {
+      mediaRecorder.requestData();
+    }, 1000); // Capture every 1s
+  };
+
+  document.getElementById("stop").onclick = () => {
+    mediaRecorder.stop();
+    clearInterval(interval);
+    subtitles.innerText = "Transcription stopped.";
+  };
+</script>
+
+</body>
+</html>
