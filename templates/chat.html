@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Chat + Voice</title>
+</head>
+<body>
+  <h1>Chat + Voice</h1>
+  <div id="chat">
+    <div id="messages"></div>
+    <input id="input" />
+    <button onclick="send()">Send</button>
+  </div>
+  <audio id="player" controls></audio>
+
+  <script>
+  async function send() {
+    const input = document.getElementById("input")
+    const msg = input.value
+    if (!msg) return
+    append("You", msg)
+    input.value = ""
+    // Fire POST
+    const resp = await fetch("/chat", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({message: msg})
+    })
+    if (!resp.ok) {
+      console.error(await resp.text())
+      return
+    }
+    const replyText = resp.headers.get("X-Reply-Text")
+    append("Bot", replyText)
+    const arrayBuffer = await resp.arrayBuffer()
+    const blob = new Blob([arrayBuffer], {type: "audio/mpeg"})
+    const url = URL.createObjectURL(blob)
+    const player = document.getElementById("player")
+    player.src = url
+    player.play()
+  }
+
+  function append(who, text) {
+    const div = document.createElement("div")
+    div.innerText = `${who}: ${text}`
+    document.getElementById("messages").appendChild(div)
+  }
+  </script>
+</body>
+</html>

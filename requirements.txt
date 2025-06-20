@@ -3,3 +3,5 @@ flask-socketio
 openai
 soundfile
 python-dotenv
+groq
+elevenlabs
