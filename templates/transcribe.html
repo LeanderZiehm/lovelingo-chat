@@ -50,28 +50,49 @@
     <button id="stop">Stop</button>
   </div>
 
-<script>
-if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
-  alert("Your browser doesn't support WebM recording with Opus codec.");
-}
+  <script>
+    if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
+      alert("Your browser doesn't support WebM recording with Opus codec.");
+    }
 
+    let mediaRecorder;
+    let recordedChunks = [];
+    const subtitles = document.getElementById('subtitles');
 
-  let mediaRecorder;
-  let interval;
-  const subtitles = document.getElementById('subtitles');
+    document.getElementById("start").onclick = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
-  document.getElementById("start").onclick = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream, {
+          mimeType: 'audio/webm;codecs=opus'
+        });
 
-    // Use WebM format
-    mediaRecorder = new MediaRecorder(stream, {
-      mimeType: 'audio/webm;codecs=opus' // WebM format with Opus codec
-    });
+        recordedChunks = [];
 
-    mediaRecorder.ondataavailable = async (e) => {
-      if (e.data.size > 0) {
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            recordedChunks.push(e.data);
+          }
+        };
+
+        mediaRecorder.start();
+        subtitles.innerText = "Recording...";
+      } catch (err) {
+        console.error("Microphone access failed:", err);
+        subtitles.innerText = "Microphone access denied.";
+      }
+    };
+
+    document.getElementById("stop").onclick = async () => {
+      if (!mediaRecorder) return;
+
+      mediaRecorder.stop();
+      subtitles.innerText = "Processing...";
+
+      mediaRecorder.onstop = async () => {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm;codecs=opus' });
         const formData = new FormData();
-        formData.append("audio", e.data, "clip.webm"); // Save as .webm
+        formData.append("audio", blob, "clip.webm");
 
         try {
           const response = await fetch("/transcribe", {
@@ -83,27 +104,17 @@ if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
           if (result.text) {
             subtitles.innerText = result.text.trim();
           } else {
+            subtitles.innerText = "Error: " + (result.error || "Unknown error");
             console.error("Error:", result.error);
           }
         } catch (err) {
+          subtitles.innerText = "Request failed.";
           console.error("Fetch failed:", err);
         }
-      }
+
+        recordedChunks = [];
+      };
     };
-
-    mediaRecorder.start();
-
-    interval = setInterval(() => {
-      mediaRecorder.requestData();
-    }, 1000); // Capture every 1s
-  };
-
-  document.getElementById("stop").onclick = () => {
-    mediaRecorder.stop();
-    clearInterval(interval);
-    subtitles.innerText = "Transcription stopped.";
-  };
-</script>
-
+  </script>
 </body>
 </html>

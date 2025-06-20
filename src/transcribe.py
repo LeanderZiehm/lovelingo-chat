@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from openai import OpenAI
-from tempfile import NamedTemporaryFile
+import tempfile
+import uuid
 import subprocess
 import os
 
@@ -13,58 +14,63 @@ model = "Systran/faster-whisper-tiny"
 
 client = OpenAI(api_key=custom_whisper_api_key, base_url=custom_whisper_url)
 
+BASE_TMP_DIR = tempfile.gettempdir()
+
+
+def save_uploaded_file(file, suffix=".webm"):
+    tmp_path = os.path.join(BASE_TMP_DIR, uuid.uuid4().hex + suffix)
+    file.save(tmp_path)
+    return tmp_path
+
+
+
+def convert_webm_to_ogg(input_path, output_suffix=".ogg"):
+    filename = uuid.uuid4().hex + output_suffix
+    output_path = os.path.join(BASE_TMP_DIR, filename)
+
+    ffmpeg_cmd = [
+        "ffmpeg", "-y",
+        "-f", "webm",           # force format
+        "-i", input_path,
+        "-vn", "-ar", "16000", "-ac", "1", "-c:a", "libvorbis",
+        output_path
+    ]
+
+    result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if result.returncode != 0:
+        raise RuntimeError(f"FFmpeg conversion failed: {result.stderr.decode()}")
+
+    return output_path
+
+
+def transcribe_audio_file(file_path, model):
+    with open(file_path, "rb") as f:
+        response = client.audio.transcriptions.create(model=model, file=f)
+        return response.text.strip()
+
+
 @transcribe_bp.route('/transcribe', methods=['POST'])
 def transcribe():
     if 'audio' not in request.files:
         return jsonify({"error": "No audio file uploaded"}), 400
 
     webm_file = request.files['audio']
-
-    with NamedTemporaryFile(suffix=".webm", delete=False) as source_temp:
-        webm_path = source_temp.name
-        webm_file.save(webm_path)
-
-    with NamedTemporaryFile(suffix=".ogg", delete=False) as target_temp:
-        ogg_path = target_temp.name
+    webm_path = None
+    ogg_path = None
 
     try:
-        # Convert WebM to OGG using libvorbis codec
-        ffmpeg_cmd = [
-            "ffmpeg", "-y",
-            "-i", webm_path,
-            "-vn",
-            "-ar", "16000",  # 16 kHz sample rate
-            "-ac", "1",       # Mono
-            "-c:a", "libvorbis",
-            ogg_path
-        ]
-
-        ffmpeg_result = subprocess.run(
-            ffmpeg_cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
-        )
-
-        if ffmpeg_result.returncode != 0:
-            error_output = ffmpeg_result.stderr.decode()
-            return jsonify({
-                "error": "FFmpeg conversion failed",
-                "ffmpeg_output": error_output
-            }), 500
-
-        with open(ogg_path, "rb") as f:
-            response = client.audio.transcriptions.create(
-                model=model,
-                file=f
-            )
-            return jsonify({"text": response.text.strip()})
+        webm_path = save_uploaded_file(webm_file)
+        ogg_path = convert_webm_to_ogg(webm_path)
+        text = transcribe_audio_file(ogg_path, model)
+        return jsonify({"text": text})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
     finally:
-        try:
-            os.remove(webm_path)
-            os.remove(ogg_path)
-        except Exception:
-            pass
+        for path in [webm_path, ogg_path]:
+            if path and os.path.exists(path):
+                try:
+                    os.remove(path)
+                except Exception:
+                    pass
