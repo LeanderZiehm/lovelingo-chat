@@ -1,0 +1,17 @@
+body { font-family: Arial, sans-serif; background: #ece5dd; margin: 0; padding: 0; }
+.persona-list { padding: 20px; }
+.persona-list ul { list-style: none; padding: 0; }
+.persona-list li { margin: 10px 0; }
+.persona-list img { width: 50px; height: 50px; border-radius: 50%; vertical-align: middle; }
+.persona-list span { margin-left: 10px; font-size: 1.2em; vertical-align: middle; }
+
+.chat-container { display: flex; flex-direction: column; height: 100vh; }
+.header { display: flex; align-items: center; padding: 10px; background: #075e54; color: white; }
+.header img { width: 40px; height: 40px; border-radius: 50%; margin-right: 10px; }
+.messages { flex: 1; padding: 20px; overflow-y: auto; }
+.message { max-width: 60%; margin-bottom: 10px; padding: 10px; border-radius: 8px; }
+.message.user { background: #dcf8c6; align-self: flex-end; }
+.message.persona { background: white; align-self: flex-start; }
+form { display: flex; padding: 10px; background: white; }
+input[type="text"] { flex: 1; padding: 10px; border: none; border-radius: 20px; }
+button { margin-left: 10px; padding: 10px 20px; border: none; border-radius: 20px; background: #075e54; color: white; cursor: pointer; }

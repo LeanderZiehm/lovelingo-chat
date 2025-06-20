@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Choose a Persona</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="persona-list">
+        <h1>Select a Persona</h1>
+        <ul>
+            {% for p in personas %}
+            <li>
+                <a href="{{ url_for('chat', persona_name=p.name) }}">
+                    <img src="{{ url_for('static', filename=p.image) }}" alt="{{ p.name }}">
+                    <span>{{ p.name }}</span>
+                </a>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

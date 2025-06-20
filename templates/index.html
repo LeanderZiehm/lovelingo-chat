@@ -1,23 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Choose a Persona</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <title>Live Transcription (No Sockets)</title>
 </head>
 <body>
-    <div class="persona-list">
-        <h1>Select a Persona</h1>
-        <ul>
-            {% for p in personas %}
-            <li>
-                <a href="{{ url_for('chat', persona_name=p.name) }}">
-                    <img src="{{ url_for('static', filename=p.image) }}" alt="{{ p.name }}">
-                    <span>{{ p.name }}</span>
-                </a>
-            </li>
-            {% endfor %}
-        </ul>
-    </div>
+  <h1>Live Transcription</h1>
+  <div id="subtitles" style="font-size: 1.5em; color: #333;"></div>
+  <button id="start">Start</button>
+  <button id="stop">Stop</button>
+
+  <script>
+    let mediaRecorder;
+    let interval;
+    const subtitles = document.getElementById('subtitles');
+
+    document.getElementById("start").onclick = async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+
+      mediaRecorder.ondataavailable = async (e) => {
+        if (e.data.size > 0) {
+          const formData = new FormData();
+          formData.append("audio", e.data, "clip.webm");
+
+          const response = await fetch("/transcribe", {
+            method: "POST",
+            body: formData
+          });
+
+          const result = await response.json();
+          if (result.text) {
+            subtitles.innerText += result.text + " ";
+          } else {
+            console.error("Error:", result.error);
+          }
+        }
+      };
+
+      mediaRecorder.start();
+
+      interval = setInterval(() => {
+        mediaRecorder.requestData();  // triggers ondataavailable
+      }, 3000); // every 3s
+    };
+
+    document.getElementById("stop").onclick = () => {
+      mediaRecorder.stop();
+      clearInterval(interval);
+    };
+  </script>
 </body>
 </html>
