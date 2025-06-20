@@ -58,7 +58,10 @@
 
     document.getElementById("start").onclick = async () => {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
 
       mediaRecorder.ondataavailable = async (e) => {
         if (e.data.size > 0) {
