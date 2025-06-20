@@ -11,15 +11,17 @@ for var in required_env_vars:
 
 from src.chat import chat_bp
 from src.transcribe import transcribe_bp  # import the blueprint
+from src.voice_chat import voice_chat_bp  # import the voice chat blueprint
 
 
 app = Flask(__name__)
 app.register_blueprint(chat_bp)
 app.register_blueprint(transcribe_bp)  # register the blueprint
+app.register_blueprint(voice_chat_bp)  # register the voice chat blueprint
 
-@app.route('/')
-def index():
-    return render_template('index.html')
+# @app.route('/')
+# def index():
+#     return render_template('index.html')
 
 if __name__ == '__main__':
     app.run(debug=True)
