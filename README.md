@@ -16,6 +16,13 @@ http://127.0.0.1:5000
 
 
 # dev 
+
+create .env for groq, elevanlabs
+
+https://elevenlabs.io/app/settings/api-keys
+https://console.groq.com/keys
+
+
 to add more personas add to personas.json and iamge under static/persona_images
 
 # links
