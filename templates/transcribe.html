@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Live Transcription (Teleprompter Style)</title>
+  <title>Live Transcription (WhatsApp Style)</title>
   <style>
     body {
       margin: 0;
@@ -14,41 +14,68 @@
       flex-direction: column;
       justify-content: flex-end;
       align-items: center;
+      position: relative;
     }
 
     #subtitles {
-      font-size: 2em;
+      font-size: 1.8em;
       color: white;
       background-color: rgba(0, 0, 0, 0.6);
       padding: 10px 20px;
       border-radius: 10px;
       max-width: 90%;
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 80px;
       transition: opacity 0.3s ease;
     }
 
-    .controls {
+    .mic-button {
       position: absolute;
-      top: 20px;
-      left: 20px;
+      bottom: 20px;
+      right: 20px;
+      background-color: #25d366;
+      border: none;
+      border-radius: 50%;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: background-color 0.3s ease;
     }
 
-    button {
+    .mic-button:hover {
+      background-color: #20b954;
+    }
+
+    .mic-button i {
+      font-size: 24px;
+      color: white;
+    }
+
+    .recording-bar {
+      position: absolute;
+      bottom: 100px;
+      background-color: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 8px;
       font-size: 1em;
-      padding: 10px 15px;
-      margin-right: 10px;
-      cursor: pointer;
+      display: none;
     }
   </style>
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
-  <div id="subtitles">Press Start to Begin</div>
+  <div id="subtitles">Press the mic to speak</div>
+  <div class="recording-bar" id="recordingBar">Recording...</div>
 
-  <div class="controls">
-    <button id="start">Start</button>
-    <button id="stop">Stop</button>
-  </div>
+  <button class="mic-button" id="micBtn">
+    <i class="fas fa-microphone"></i>
+  </button>
 
   <script>
     if (!MediaRecorder.isTypeSupported('audio/webm;codecs=opus')) {
@@ -58,62 +85,76 @@
     let mediaRecorder;
     let recordedChunks = [];
     const subtitles = document.getElementById('subtitles');
+    const micBtn = document.getElementById('micBtn');
+    const micIcon = micBtn.querySelector('i');
+    const recordingBar = document.getElementById('recordingBar');
 
-    document.getElementById("start").onclick = async () => {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    let isRecording = false;
 
-        mediaRecorder = new MediaRecorder(stream, {
-          mimeType: 'audio/webm;codecs=opus'
-        });
-
-        recordedChunks = [];
-
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            recordedChunks.push(e.data);
-          }
-        };
-
-        mediaRecorder.start();
-        subtitles.innerText = "Recording...";
-      } catch (err) {
-        console.error("Microphone access failed:", err);
-        subtitles.innerText = "Microphone access denied.";
-      }
-    };
-
-    document.getElementById("stop").onclick = async () => {
-      if (!mediaRecorder) return;
-
-      mediaRecorder.stop();
-      subtitles.innerText = "Processing...";
-
-      mediaRecorder.onstop = async () => {
-        const blob = new Blob(recordedChunks, { type: 'audio/webm;codecs=opus' });
-        const formData = new FormData();
-        formData.append("audio", blob, "clip.webm");
-
+    micBtn.onclick = async () => {
+      if (!isRecording) {
+        // Start recording
         try {
-          const response = await fetch("/transcribe", {
-            method: "POST",
-            body: formData
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm;codecs=opus'
           });
 
-          const result = await response.json();
-          if (result.text) {
-            subtitles.innerText = result.text.trim();
-          } else {
-            subtitles.innerText = "Error: " + (result.error || "Unknown error");
-            console.error("Error:", result.error);
-          }
-        } catch (err) {
-          subtitles.innerText = "Request failed.";
-          console.error("Fetch failed:", err);
-        }
+          recordedChunks = [];
 
-        recordedChunks = [];
-      };
+          mediaRecorder.ondataavailable = (e) => {
+            if (e.data.size > 0) {
+              recordedChunks.push(e.data);
+            }
+          };
+
+          mediaRecorder.start();
+          subtitles.innerText = "";
+          recordingBar.style.display = 'block';
+          micIcon.classList.remove('fa-microphone');
+          micIcon.classList.add('fa-paper-plane');
+          isRecording = true;
+
+        } catch (err) {
+          console.error("Microphone access failed:", err);
+          subtitles.innerText = "Microphone access denied.";
+        }
+      } else {
+        // Stop recording and send
+        mediaRecorder.stop();
+        recordingBar.style.display = 'none';
+        micIcon.classList.remove('fa-paper-plane');
+        micIcon.classList.add('fa-microphone');
+        subtitles.innerText = "Processing...";
+        isRecording = false;
+
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(recordedChunks, { type: 'audio/webm;codecs=opus' });
+          const formData = new FormData();
+          formData.append("audio", blob, "clip.webm");
+
+          try {
+            const response = await fetch("/transcribe", {
+              method: "POST",
+              body: formData
+            });
+
+            const result = await response.json();
+            if (result.text) {
+              subtitles.innerText = result.text.trim();
+            } else {
+              subtitles.innerText = "Error: " + (result.error || "Unknown error");
+              console.error("Error:", result.error);
+            }
+          } catch (err) {
+            subtitles.innerText = "Request failed.";
+            console.error("Fetch failed:", err);
+          }
+
+          recordedChunks = [];
+        };
+      }
     };
   </script>
 </body>

@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Live Transcription (Enhanced)</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-image: url('static/persona_images/luna.png');
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+    }
+
+    #subtitles {
+      font-size: 2em;
+      color: white;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 15px 25px;
+      border-radius: 10px;
+      max-width: 90%;
+      text-align: center;
+      margin-bottom: 40px;
+      transition: all 0.3s ease;
+      min-height: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .controls {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    button {
+      font-size: 1em;
+      padding: 10px 15px;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    button:disabled {
+      background-color: #6c757d;
+      cursor: not-allowed;
+    }
+
+    #status {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 0.9em;
+      max-width: 300px;
+    }
+
+    .error {
+      color: #ff6b6b;
+      background-color: rgba(255, 0, 0, 0.1);
+    }
+
+    .success {
+      color: #51cf66;
+    }
+
+    .warning {
+      color: #ffd43b;
+    }
+
+    #debug {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      background-color: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 0.8em;
+      max-width: 400px;
+      max-height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+    }
+
+    .confidence-bar {
+      position: absolute;
+      bottom: 100px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 200px;
+      height: 6px;
+      background-color: rgba(255, 255, 255, 0.3);
+      border-radius: 3px;
+    }
+
+    .confidence-fill {
+      height: 100%;
+      background-color: #51cf66;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="subtitles">Press Start to Begin</div>
+
+  <div class="controls">
+    <button id="start">Start Recording</button>
+    <button id="stop" disabled>Stop Recording</button>
+    <button id="clear">Clear Text</button>
+  </div>
+
+  <div id="status">Ready to start</div>
+  <div id="debug"></div>
+
+  <div class="confidence-bar">
+    <div class="confidence-fill" id="confidence"></div>
+  </div>
+
+  <script>
+    class LiveTranscriber {
+      constructor() {
+        this.mediaRecorder = null;
+        this.stream = null;
+        this.interval = null;
+        this.audioChunks = [];
+        this.transcriptionHistory = [];
+        this.lastTranscription = '';
+        this.retryCount = 0;
+        this.maxRetries = 3;
+        this.isRecording = false;
+        this.chunkDuration = 2000; // 2 seconds for better accuracy
+        this.overlapDuration = 500; // 500ms overlap for continuity
+        
+        this.elements = {
+          subtitles: document.getElementById('subtitles'),
+          status: document.getElementById('status'),
+          debug: document.getElementById('debug'),
+          confidence: document.getElementById('confidence'),
+          startBtn: document.getElementById('start'),
+          stopBtn: document.getElementById('stop'),
+          clearBtn: document.getElementById('clear')
+        };
+
+        this.bindEvents();
+        this.log('Transcriber initialized');
+      }
+
+      bindEvents() {
+        this.elements.startBtn.onclick = () => this.start();
+        this.elements.stopBtn.onclick = () => this.stop();
+        this.elements.clearBtn.onclick = () => this.clear();
+      }
+
+      log(message, type = 'info') {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = `[${timestamp}] ${message}`;
+        console.log(logEntry);
+        
+        const debugEl = this.elements.debug;
+        const span = document.createElement('div');
+        span.textContent = logEntry;
+        span.className = type;
+        debugEl.appendChild(span);
+        debugEl.scrollTop = debugEl.scrollHeight;
+
+        // Keep only last 10 log entries
+        while (debugEl.children.length > 10) {
+          debugEl.removeChild(debugEl.firstChild);
+        }
+      }
+
+      updateStatus(message, type = 'info') {
+        this.elements.status.textContent = message;
+        this.elements.status.className = type;
+        this.log(`Status: ${message}`, type);
+      }
+
+      updateConfidence(confidence) {
+        const percentage = Math.min(100, Math.max(0, confidence * 100));
+        this.elements.confidence.style.width = `${percentage}%`;
+        
+        if (percentage > 80) {
+          this.elements.confidence.style.backgroundColor = '#51cf66';
+        } else if (percentage > 60) {
+          this.elements.confidence.style.backgroundColor = '#ffd43b';
+        } else {
+          this.elements.confidence.style.backgroundColor = '#ff6b6b';
+        }
+      }
+
+      async start() {
+        try {
+          this.updateStatus('Requesting microphone access...', 'warning');
+          
+          // Check for browser support
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('MediaDevices API not supported in this browser');
+          }
+
+          if (!window.MediaRecorder) {
+            throw new Error('MediaRecorder API not supported in this browser');
+          }
+
+          this.stream = await navigator.mediaDevices.getUserMedia({ 
+            audio: {
+              echoCancellation: true,
+              noiseSuppression: true,
+              autoGainControl: true,
+              sampleRate: 16000
+            }
+          });
+
+          this.log('Microphone access granted');
+
+          // Check supported MIME types
+          const mimeTypes = [
+            'audio/webm;codecs=opus',
+            'audio/webm',
+            'audio/ogg;codecs=opus',
+            'audio/mp4',
+            'audio/wav'
+          ];
+
+          let selectedMimeType = null;
+          for (const mimeType of mimeTypes) {
+            if (MediaRecorder.isTypeSupported(mimeType)) {
+              selectedMimeType = mimeType;
+              break;
+            }
+          }
+
+          if (!selectedMimeType) {
+            throw new Error('No supported audio MIME type found');
+          }
+
+          this.log(`Using MIME type: ${selectedMimeType}`);
+
+          this.mediaRecorder = new MediaRecorder(this.stream, {
+            mimeType: selectedMimeType,
+            audioBitsPerSecond: 128000
+          });
+
+          this.mediaRecorder.ondataavailable = (e) => this.handleAudioData(e);
+          this.mediaRecorder.onerror = (e) => this.handleRecorderError(e);
+          
+          this.mediaRecorder.onstart = () => {
+            this.log('MediaRecorder started');
+            this.isRecording = true;
+            this.elements.startBtn.disabled = true;
+            this.elements.stopBtn.disabled = false;
+            this.updateStatus('Recording...', 'success');
+          };
+
+          this.mediaRecorder.onstop = () => {
+            this.log('MediaRecorder stopped');
+            this.isRecording = false;
+            this.elements.startBtn.disabled = false;
+            this.elements.stopBtn.disabled = true;
+          };
+
+          this.mediaRecorder.start();
+
+          // Start the interval for requesting data
+          this.interval = setInterval(() => {
+            if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+              this.mediaRecorder.requestData();
+            }
+          }, this.chunkDuration);
+
+        } catch (error) {
+          this.handleError('Failed to start recording', error);
+        }
+      }
+
+      async stop() {
+        try {
+          if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+            this.mediaRecorder.stop();
+          }
+
+          if (this.interval) {
+            clearInterval(this.interval);
+            this.interval = null;
+          }
+
+          if (this.stream) {
+            this.stream.getTracks().forEach(track => track.stop());
+            this.stream = null;
+          }
+
+          this.updateStatus('Recording stopped', 'warning');
+          this.log('Recording stopped successfully');
+
+        } catch (error) {
+          this.handleError('Failed to stop recording', error);
+        }
+      }
+
+      clear() {
+        this.elements.subtitles.textContent = 'Cleared - Press Start to Begin';
+        this.transcriptionHistory = [];
+        this.lastTranscription = '';
+        this.updateConfidence(0);
+        this.log('Transcription cleared');
+      }
+
+      async handleAudioData(event) {
+        if (event.data.size === 0) {
+          this.log('Received empty audio data', 'warning');
+          return;
+        }
+
+        this.log(`Processing audio chunk: ${event.data.size} bytes`);
+
+        const formData = new FormData();
+        formData.append("audio", event.data, "clip.webm");
+
+        try {
+          const response = await fetch("/transcribe", {
+            method: "POST",
+            body: formData,
+            timeout: 10000 // 10 second timeout
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          this.handleTranscriptionResult(result);
+          this.retryCount = 0; // Reset retry count on success
+
+        } catch (error) {
+          this.handleTranscriptionError(error);
+        }
+      }
+
+      handleTranscriptionResult(result) {
+        if (result.error) {
+          this.log(`Server error: ${result.error}`, 'error');
+          this.updateStatus(`Transcription error: ${result.error}`, 'error');
+          return;
+        }
+
+        if (!result.text || result.text.trim() === '') {
+          this.log('Received empty transcription', 'warning');
+          return;
+        }
+
+        const newText = result.text.trim();
+        const confidence = result.confidence || 0.8; // Default confidence if not provided
+
+        this.log(`Transcription: "${newText}" (confidence: ${(confidence * 100).toFixed(1)}%)`);
+        
+        // Update confidence bar
+        this.updateConfidence(confidence);
+
+        // Apply self-correction logic
+        const correctedText = this.applySelfCorrection(newText);
+        
+        // Update the display
+        this.elements.subtitles.textContent = correctedText;
+        this.lastTranscription = correctedText;
+        
+        // Store in history for context
+        this.transcriptionHistory.push({
+          text: correctedText,
+          timestamp: Date.now(),
+          confidence: confidence
+        });
+
+        // Keep only last 10 transcriptions for context
+        if (this.transcriptionHistory.length > 10) {
+          this.transcriptionHistory.shift();
+        }
+
+        this.updateStatus(`Active - Confidence: ${(confidence * 100).toFixed(1)}%`, 'success');
+      }
+
+      applySelfCorrection(newText) {
+        // Simple self-correction based on recent history
+        if (this.transcriptionHistory.length === 0) {
+          return newText;
+        }
+
+        const recentText = this.transcriptionHistory.slice(-3).map(h => h.text).join(' ');
+        
+        // If the new text is very similar to recent text, prefer the longer version
+        const similarity = this.calculateSimilarity(newText, recentText);
+        
+        if (similarity > 0.7 && newText.length > this.lastTranscription.length) {
+          this.log(`Self-correction applied (similarity: ${(similarity * 100).toFixed(1)}%)`);
+          return newText;
+        }
+
+        // If new text is much shorter and similar, it might be incomplete
+        if (similarity > 0.5 && newText.length < this.lastTranscription.length * 0.7) {
+          this.log('Keeping previous transcription (new text seems incomplete)');
+          return this.lastTranscription;
+        }
+
+        return newText;
+      }
+
+      calculateSimilarity(str1, str2) {
+        const words1 = str1.toLowerCase().split(/\s+/);
+        const words2 = str2.toLowerCase().split(/\s+/);
+        
+        const commonWords = words1.filter(word => words2.includes(word));
+        const totalWords = Math.max(words1.length, words2.length);
+        
+        return totalWords > 0 ? commonWords.length / totalWords : 0;
+      }
+
+      handleTranscriptionError(error) {
+        this.retryCount++;
+        this.log(`Transcription error (attempt ${this.retryCount}): ${error.message}`, 'error');
+
+        if (this.retryCount >= this.maxRetries) {
+          this.updateStatus(`Transcription failed after ${this.maxRetries} attempts`, 'error');
+          this.log('Max retries reached, stopping transcription', 'error');
+          this.stop();
+        } else {
+          this.updateStatus(`Retrying... (${this.retryCount}/${this.maxRetries})`, 'warning');
+        }
+      }
+
+      handleRecorderError(event) {
+        this.log(`MediaRecorder error: ${event.error}`, 'error');
+        this.updateStatus('Recording error occurred', 'error');
+        this.stop();
+      }
+
+      handleError(message, error) {
+        this.log(`${message}: ${error.message}`, 'error');
+        this.updateStatus(message, 'error');
+        
+        // Clean up on error
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => track.stop());
+        }
+        if (this.interval) {
+          clearInterval(this.interval);
+        }
+        
+        this.elements.startBtn.disabled = false;
+        this.elements.stopBtn.disabled = true;
+      }
+    }
+
+    // Initialize the transcriber when the page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      new LiveTranscriber();
+    });
+  </script>
+</body>
+</html>
