@@ -50,5 +50,6 @@ def chat():
             if isinstance(chunk, bytes):
                 yield chunk
 
-    headers = {"X-Reply-Text": reply}
+
+    headers = {"X-Reply-Text": reply.replace("\n", " ")}
     return Response(generate(), mimetype="audio/mpeg", headers=headers)
