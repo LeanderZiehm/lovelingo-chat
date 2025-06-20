@@ -7,7 +7,7 @@ load_dotenv()
 # Check required environment variables
 required_env_vars = ["ELEVENLABS_API_KEY", "GROQ_API_KEY"]
 for var in required_env_vars:
-    assert os.getenv(var), f"Missing required environment variable: {var}. Please create a .env file with these variables before running this script. For more info look in readme.md under dev."
+    assert os.getenv(var), f"Missing required environment variable: {var}. Please create a .env file with these variables before running this script. The links to get the free api keys is in the readme in the section setup dev."
 
 from src.chat import chat_bp
 from src.transcribe import transcribe_bp  # import the blueprint
