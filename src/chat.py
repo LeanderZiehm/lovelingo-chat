@@ -25,23 +25,17 @@ VOICE_ID = "nDJIICjR9zfJExIFeSCN"
 def chat_get():
     return render_template("chat.html")
 
-
+# todo add cashing of audo files if same text is requested
 @chat_bp.route("/tts", methods=["POST"])
 def tts():
     data = request.get_json(silent=True) or {}
-    user_msg = data.get("message")
-    if not user_msg:
-        return {"error": "Missing 'message' in JSON body."}, 400
-
-    # 1️⃣ Send user message to Groq
-    resp = groq.chat.completions.create(
-        messages=[{"role": "user", "content": user_msg}], model="llama3-8b-8192"
-    )
-    reply = resp.choices[0].message.content
-
-    # 2️⃣ Generate ElevenLabs TTS stream
+    text = data.get("text")
+    if not text:
+        return {"error": "Missing 'text' in JSON body."}, 400
+    
+    # Generate ElevenLabs TTS stream
     audio_stream = eleven.text_to_speech.stream(
-        text=reply, voice_id=VOICE_ID, model_id="eleven_multilingual_v2"
+        text=text, voice_id=VOICE_ID, model_id="eleven_multilingual_v2"
     )
 
     def generate():
@@ -49,7 +43,7 @@ def tts():
             if isinstance(chunk, bytes):
                 yield chunk
 
-    headers = {"X-Reply-Text": reply.replace("\n", " ")}
+    headers = {"X-Reply-Text": text.replace("\n", " ")}
     return Response(generate(), mimetype="audio/mpeg", headers=headers)
 
 
