@@ -13,7 +13,7 @@ from pathlib import Path
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-voice_chat_bp = Blueprint('voice_chat_bp', __name__)
+transcribe_bp = Blueprint('transcribe_bp', __name__)
 
 # Whisper API configuration
 CUSTOM_WHISPER_API_KEY = "whisper.leanderziehm.com"
@@ -27,14 +27,6 @@ FFMPEG_TIMEOUT = 30  # seconds
 WHISPER_TIMEOUT = 30  # seconds
 
 
-@voice_chat_bp.route('/voice_chat', methods=['Get'])
-def index():
-    return render_template('voice_chat.html')
-
-
-# @chat_bp.route('/chat', methods=['GET'])
-# def chat_get():
-#     return render_template('chat.html')
 
 
 # Initialize OpenAI client with error handling
@@ -226,7 +218,7 @@ class WhisperTranscriber:
 audio_processor = AudioProcessor()
 transcriber = WhisperTranscriber(client) if client else None
 
-@voice_chat_bp.route('/transcribe', methods=['POST'])
+@transcribe_bp.route('/transcribe', methods=['POST'])
 def transcribe():
     """Main transcription endpoint with comprehensive error handling"""
     

@@ -10,14 +10,12 @@ for var in required_env_vars:
     assert os.getenv(var), f"Missing required environment variable: {var}. Please create a .env file with these variables before running this script. The links to get the free api keys is in the readme in the section setup dev."
 
 from src.chat import chat_bp
-# from src.transcribe import transcribe_bp  # import the blueprint
-from src.voice_chat import voice_chat_bp  # import the voice chat blueprint
+from transcribe_v2 import transcribe_bp  # import the voice chat blueprint
 
 
 app = Flask(__name__)
 app.register_blueprint(chat_bp)
-# app.register_blueprint(transcribe_bp)  # register the blueprint
-app.register_blueprint(voice_chat_bp)  # register the voice chat blueprint
+app.register_blueprint(transcribe_bp)  # register the voice chat blueprint
 
 @app.route('/')
 def index():
@@ -25,7 +23,7 @@ def index():
 
 @app.route('/v1')
 def v1():
-    return render_template('chat.html')
+    return render_template('chat_v1.html')
 
 
 
