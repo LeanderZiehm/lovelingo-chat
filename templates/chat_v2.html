@@ -4,6 +4,7 @@
   <title>Chat + Voice Transcription</title>
   <style>
 :root {
+  --highlight-color: rgb(247, 0, 255);
   /* Primary Backgrounds */
   --bg-gradient-start: #667eea;
   --bg-gradient-end: #764ba2;
@@ -424,12 +425,50 @@ body {
   }
 }
 
+
+.chat-header button {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background-color: var(--highlight-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-left: auto; cursor: pointer;
+}
+
+/* .chat-header button:hover {
+  background-color: #0056b3;
+} */
+
+/* Pulsing animation */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+}
+
+.chat-header button.pulsing {
+  animation: pulse 1.2s infinite;
+}
   </style>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
   <div class="chat-header">
     <h1>Assistant Chat</h1>
+    <!-- //call button  -->
+     <button id="call-btn" >
+    <i class="fas fa-phone-alt" ></i>
+     </button>
+
   </div>
 
   <div id="chat">
@@ -491,6 +530,7 @@ body {
     const typingIndicator = document.getElementById('typingIndicator');
     const audioVisualizer = document.getElementById('audioVisualizer');
     const player = document.getElementById('player');
+    const callBtn = document.getElementById('call-btn');
 
     let isRecording = false;
     let mediaRecorder;
@@ -509,6 +549,12 @@ body {
     }
 
     const visualizerBars = document.querySelectorAll('.visualizer-bar');
+    callBtn.onclick = () => {
+      // Placeholder for call functionality
+      // alert("Call button clicked! Implement call functionality here.");
+      //redirect to /call
+      window.location.href = "/call";
+    };
 
     function getCurrentTime() {
       return '' //new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
