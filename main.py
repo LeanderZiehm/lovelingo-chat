@@ -33,12 +33,12 @@ def call():
 
 
 @app.route('/persona')
-def call():
+def persona():
     return render_template('persona.html')
 
 
 @app.route('/voice2voice')
-def call():
+def voice2voice():
     return render_template('persona.html')
 
 
