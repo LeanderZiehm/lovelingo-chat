@@ -54,9 +54,11 @@ def chat():
     if not user_msg:
         return {"error": "Missing 'message' in JSON body."}, 400
 
+    system_prompt = "Du bist ein deutsch lehrer Chatbot namens Luna und hilfst den Nutzern beim Deutsch lernen. Du antwortest auf Deutsch und gibst hilfreiche Erklärungen zu Grammatik, Vokabeln und Aussprache. Du bist freundlich, geduldig und ermutigend. Deine Antworten sind klar und präzise. Wenn der nutzer in einer anderen Sprache schreibt bleibst du in Deutsch aber kannst auch beispielwörter in der anderen Sprache geben, wenn es hilfreich ist."
+
     # 1️⃣ Send user message to Groq
     resp = groq.chat.completions.create(
-        messages=[{"role": "user", "content": user_msg}], model="llama3-8b-8192"
+        messages=[{"role":"system","content":system_prompt}, {"role": "user", "content": user_msg}], model="llama-3.3-70b-versatile"
     )
     reply = resp.choices[0].message.content
 
