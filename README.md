@@ -3,25 +3,22 @@
 ![image](https://github.com/user-attachments/assets/e21d944d-9c7b-4915-a5d9-e7cd9fb65649)
 ![image](https://github.com/user-attachments/assets/b8db8097-e479-49bc-84dd-fa4da335440e)
 
-
 # setup
 
 pip install -r requirements.txt
 
 python main.py
 
-open 
+open
 
 http://127.0.0.1:5000
 
-
-# dev 
+# dev
 
 create .env for groq, elevanlabs
 
 https://elevenlabs.io/app/settings/api-keys
 https://console.groq.com/keys
-
 
 to add more personas add to personas.json and iamge under static/persona_images
 
@@ -31,11 +28,9 @@ https://whisper_cpu.leanderziehm.com/
 https://whisper.leanderziehm.com/
 https://tts.leanderziehm.com/
 
-# todo 
+# todo
 
 add a chat icon like whatsapp call or chatgpt and have voice unctionality that shows image full screen.
-
-
 
 # References
 
@@ -61,19 +56,18 @@ python3 TTS/server/server.py --model_name tts_models/en/vctk/vits # To start a s
 ![image](https://github.com/user-attachments/assets/e21d944d-9c7b-4915-a5d9-e7cd9fb65649)
 ![image](https://github.com/user-attachments/assets/b8db8097-e479-49bc-84dd-fa4da335440e)
 
-
 # setup
 
 pip install -r requirements.txt
 
 python main.py
 
-open 
+open
 
 http://127.0.0.1:5000
 
+# dev
 
-# dev 
 to add more personas add to personas.json and iamge under static/persona_images
 
 # links
@@ -82,11 +76,9 @@ https://whisper_cpu.leanderziehm.com/
 https://whisper.leanderziehm.com/
 https://tts.leanderziehm.com/
 
-# todo 
+# todo
 
 add a chat icon like whatsapp call or chatgpt and have voice unctionality that shows image full screen.
-
-
 
 # References
 

@@ -1,236 +1,245 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Chat + Voice Transcription</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-image: url('static/persona_images/luna.png');
-      background-size: cover;
-      font-family: Arial, sans-serif;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
-      position: relative;
-    }
-
-    #chat {
-      width: 90%;
-      max-width: 600px;
-      background-color: rgba(255, 255, 255, 0.9);
-      padding: 10px;
-      border-radius: 10px;
-      margin-bottom: 20px;
-      overflow-y: auto;
-      max-height: 50vh;
-    }
-
-    #messages div {
-      margin: 5px 0;
-    }
-
-    #inputBar {
-      width: 90%;
-      max-width: 600px;
-      display: flex;
-      margin-bottom: 80px;
-    }
-
-    #input {
-      flex: 1;
-      padding: 10px;
-      border-radius: 10px 0 0 10px;
-      border: 1px solid #ccc;
-      font-size: 1em;
-    }
-
-    #sendBtn {
-      padding: 10px 20px;
-      border: none;
-      background-color: #25d366;
-      color: white;
-      border-radius: 0 10px 10px 0;
-      cursor: pointer;
-    }
-
-    #subtitles {
-      font-size: 1.2em;
-      color: white;
-      background-color: rgba(0, 0, 0, 0.6);
-      padding: 8px 16px;
-      border-radius: 10px;
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .mic-button {
-      position: absolute;
-      bottom: 20px;
-      right: 20px;
-      background-color: #25d366;
-      border: none;
-      border-radius: 50%;
-      width: 60px;
-      height: 60px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-      cursor: pointer;
-    }
-
-    .mic-button i {
-      font-size: 24px;
-      color: white;
-    }
-
-    .recording-bar {
-      position: absolute;
-      bottom: 100px;
-      background-color: rgba(0, 0, 0, 0.7);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 8px;
-      display: none;
-    }
-  </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-
-  <div id="chat">
-    <div id="messages"></div>
-  </div>
-
-  <div id="subtitles">Press the mic or type below</div>
-  <div class="recording-bar" id="recordingBar">Recording...</div>
-
-  <div id="inputBar">
-    <input id="input" placeholder="Type your message..." />
-    <button id="sendBtn">Send</button>
-  </div>
-
-  <button class="mic-button" id="micBtn">
-    <i class="fas fa-microphone"></i>
-  </button>
-
-  <audio id="player" controls style="display:none;"></audio>
-
-  <script>
-    const subtitles = document.getElementById('subtitles');
-    const messagesDiv = document.getElementById('messages');
-    const input = document.getElementById('input');
-    const sendBtn = document.getElementById('sendBtn');
-    const micBtn = document.getElementById('micBtn');
-    const micIcon = micBtn.querySelector('i');
-    const recordingBar = document.getElementById('recordingBar');
-    const player = document.getElementById('player');
-
-    function appendMessage(who, text) {
-      const div = document.createElement("div");
-      div.innerText = `${who}: ${text}`;
-      messagesDiv.appendChild(div);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-
-    async function sendMessage(text) {
-      appendMessage("You", text);
-      subtitles.innerText = "Processing...";
-      const resp = await fetch("/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text })
-      });
-
-      if (!resp.ok) {
-        console.error(await resp.text());
-        subtitles.innerText = "Error during request.";
-        return;
+  <head>
+    <title>Chat + Voice Transcription</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-image: url("static/persona_images/luna.png");
+        background-size: cover;
+        font-family: Arial, sans-serif;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        position: relative;
       }
 
-      const replyText = resp.headers.get("X-Reply-Text") || "Bot response";
-      appendMessage("Bot", replyText);
-      subtitles.innerText = replyText;
-
-      const arrayBuffer = await resp.arrayBuffer();
-      const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
-      const url = URL.createObjectURL(blob);
-      player.src = url;
-      player.style.display = "block";
-      player.play();
-    }
-
-    sendBtn.onclick = () => {
-      const text = input.value.trim();
-      if (text) {
-        sendMessage(text);
-        input.value = "";
+      #chat {
+        width: 90%;
+        max-width: 600px;
+        background-color: rgba(255, 255, 255, 0.9);
+        padding: 10px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        overflow-y: auto;
+        max-height: 50vh;
       }
-    };
 
-    // Voice recording logic
-    let isRecording = false;
-    let mediaRecorder;
-    let recordedChunks = [];
+      #messages div {
+        margin: 5px 0;
+      }
 
-    micBtn.onclick = async () => {
-      if (!isRecording) {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-          recordedChunks = [];
+      #inputBar {
+        width: 90%;
+        max-width: 600px;
+        display: flex;
+        margin-bottom: 80px;
+      }
 
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-          };
+      #input {
+        flex: 1;
+        padding: 10px;
+        border-radius: 10px 0 0 10px;
+        border: 1px solid #ccc;
+        font-size: 1em;
+      }
 
-          mediaRecorder.start();
-          recordingBar.style.display = 'block';
-          micIcon.classList.remove('fa-microphone');
-          micIcon.classList.add('fa-paper-plane');
-          isRecording = true;
-        } catch (err) {
-          console.error("Microphone access failed:", err);
-          subtitles.innerText = "Microphone access denied.";
+      #sendBtn {
+        padding: 10px 20px;
+        border: none;
+        background-color: #25d366;
+        color: white;
+        border-radius: 0 10px 10px 0;
+        cursor: pointer;
+      }
+
+      #subtitles {
+        font-size: 1.2em;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.6);
+        padding: 8px 16px;
+        border-radius: 10px;
+        text-align: center;
+        margin-bottom: 10px;
+      }
+
+      .mic-button {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        background-color: #25d366;
+        border: none;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+      }
+
+      .mic-button i {
+        font-size: 24px;
+        color: white;
+      }
+
+      .recording-bar {
+        position: absolute;
+        bottom: 100px;
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 8px;
+        display: none;
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <div id="chat">
+      <div id="messages"></div>
+    </div>
+
+    <div id="subtitles">Press the mic or type below</div>
+    <div class="recording-bar" id="recordingBar">Recording...</div>
+
+    <div id="inputBar">
+      <input id="input" placeholder="Type your message..." />
+      <button id="sendBtn">Send</button>
+    </div>
+
+    <button class="mic-button" id="micBtn">
+      <i class="fas fa-microphone"></i>
+    </button>
+
+    <audio id="player" controls style="display: none"></audio>
+
+    <script>
+      const subtitles = document.getElementById("subtitles");
+      const messagesDiv = document.getElementById("messages");
+      const input = document.getElementById("input");
+      const sendBtn = document.getElementById("sendBtn");
+      const micBtn = document.getElementById("micBtn");
+      const micIcon = micBtn.querySelector("i");
+      const recordingBar = document.getElementById("recordingBar");
+      const player = document.getElementById("player");
+
+      function appendMessage(who, text) {
+        const div = document.createElement("div");
+        div.innerText = `${who}: ${text}`;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      async function sendMessage(text) {
+        appendMessage("You", text);
+        subtitles.innerText = "Processing...";
+        const resp = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text }),
+        });
+
+        if (!resp.ok) {
+          console.error(await resp.text());
+          subtitles.innerText = "Error during request.";
+          return;
         }
-      } else {
-        mediaRecorder.stop();
-        recordingBar.style.display = 'none';
-        micIcon.classList.remove('fa-paper-plane');
-        micIcon.classList.add('fa-microphone');
-        isRecording = false;
-        subtitles.innerText = "Transcribing...";
 
-        mediaRecorder.onstop = async () => {
-          const blob = new Blob(recordedChunks, { type: 'audio/webm;codecs=opus' });
-          const formData = new FormData();
-          formData.append("audio", blob, "clip.webm");
+        const replyText = resp.headers.get("X-Reply-Text") || "Bot response";
+        appendMessage("Bot", replyText);
+        subtitles.innerText = replyText;
 
-          try {
-            const response = await fetch("/transcribe", {
-              method: "POST",
-              body: formData
-            });
-
-            const result = await response.json();
-            if (result.text) {
-              sendMessage(result.text.trim());
-            } else {
-              subtitles.innerText = "Error: " + (result.error || "Unknown error");
-              console.error("Transcription Error:", result.error);
-            }
-          } catch (err) {
-            subtitles.innerText = "Request failed.";
-            console.error("Fetch failed:", err);
-          }
-
-          recordedChunks = [];
-        };
+        const arrayBuffer = await resp.arrayBuffer();
+        const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+        const url = URL.createObjectURL(blob);
+        player.src = url;
+        player.style.display = "block";
+        player.play();
       }
-    };
-  </script>
-</body>
+
+      sendBtn.onclick = () => {
+        const text = input.value.trim();
+        if (text) {
+          sendMessage(text);
+          input.value = "";
+        }
+      };
+
+      // Voice recording logic
+      let isRecording = false;
+      let mediaRecorder;
+      let recordedChunks = [];
+
+      micBtn.onclick = async () => {
+        if (!isRecording) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+            });
+            mediaRecorder = new MediaRecorder(stream, {
+              mimeType: "audio/webm;codecs=opus",
+            });
+            recordedChunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+              if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.start();
+            recordingBar.style.display = "block";
+            micIcon.classList.remove("fa-microphone");
+            micIcon.classList.add("fa-paper-plane");
+            isRecording = true;
+          } catch (err) {
+            console.error("Microphone access failed:", err);
+            subtitles.innerText = "Microphone access denied.";
+          }
+        } else {
+          mediaRecorder.stop();
+          recordingBar.style.display = "none";
+          micIcon.classList.remove("fa-paper-plane");
+          micIcon.classList.add("fa-microphone");
+          isRecording = false;
+          subtitles.innerText = "Transcribing...";
+
+          mediaRecorder.onstop = async () => {
+            const blob = new Blob(recordedChunks, {
+              type: "audio/webm;codecs=opus",
+            });
+            const formData = new FormData();
+            formData.append("audio", blob, "clip.webm");
+
+            try {
+              const response = await fetch("/transcribe", {
+                method: "POST",
+                body: formData,
+              });
+
+              const result = await response.json();
+              if (result.text) {
+                sendMessage(result.text.trim());
+              } else {
+                subtitles.innerText =
+                  "Error: " + (result.error || "Unknown error");
+                console.error("Transcription Error:", result.error);
+              }
+            } catch (err) {
+              subtitles.innerText = "Request failed.";
+              console.error("Fetch failed:", err);
+            }
+
+            recordedChunks = [];
+          };
+        }
+      };
+    </script>
+  </body>
 </html>

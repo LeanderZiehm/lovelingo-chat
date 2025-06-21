@@ -1,497 +1,546 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Voice Call - Luna</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+  <head>
+    <title>Voice Call - Luna</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      height: 100vh;
-      overflow: hidden;
-      position: relative;
-    }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+      }
 
-    .call-container {
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      align-items: center;
-      padding: 60px 20px 40px;
-      color: white;
-      text-align: center;
-      position: relative;
-    }
+      .call-container {
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        padding: 60px 20px 40px;
+        color: white;
+        text-align: center;
+        position: relative;
+      }
 
-    .avatar-section {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      margin-top: -50px;
-    }
+      .avatar-section {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        margin-top: -50px;
+      }
 
-    .avatar {
-      width: 200px;
-      height: 200px;
-      border-radius: 50%;
-      background-image: url('static/persona_images/luna.png');
-      background-size: cover;
-      background-position: center;
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-      margin-bottom: 30px;
-      transition: transform 0.3s ease;
-    }
-
-    .avatar.speaking {
-      transform: scale(1.05);
-      border-color: rgba(255, 255, 255, 0.8);
-      box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
-    }
-
-    .contact-info h1 {
-      font-size: 2.5em;
-      font-weight: 300;
-      margin-bottom: 10px;
-      text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-    }
-
-    .call-status {
-      font-size: 1.2em;
-      opacity: 0.9;
-      margin-bottom: 20px;
-    }
-
-    .call-duration {
-      font-size: 1.1em;
-      opacity: 0.8;
-      font-weight: 300;
-    }
-
-    .transcript-area {
-      background: rgba(0, 0, 0, 0.3);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 20px;
-      margin: 20px 0;
-      max-height: 150px;
-      overflow-y: auto;
-      width: 100%;
-      max-width: 400px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-
-    .message {
-      margin: 8px 0;
-      padding: 8px 12px;
-      border-radius: 12px;
-      font-size: 0.95em;
-      line-height: 1.4;
-    }
-
-    .message.user {
-      background: rgba(255, 255, 255, 0.2);
-      text-align: right;
-      margin-left: 20px;
-    }
-
-    .message.bot {
-      background: rgba(0, 0, 0, 0.2);
-      text-align: left;
-      margin-right: 20px;
-    }
-
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      margin-bottom: 20px;
-    }
-
-    .control-btn {
-      width: 65px;
-      height: 65px;
-      border-radius: 50%;
-      border: none;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 24px;
-      transition: all 0.3s ease;
-      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-    }
-
-    .mic-btn {
-      background: #25d366;
-      color: white;
-    }
-
-    .mic-btn:hover {
-      background: #1ea952;
-      transform: scale(1.05);
-    }
-
-    .mic-btn.recording {
-      background: #ff4444;
-      animation: pulse 1.5s infinite;
-    }
-
-    .end-call-btn {
-      background: #ff4444;
-      color: white;
-    }
-
-    .end-call-btn:hover {
-      background: #cc0000;
-      transform: scale(1.05);
-    }
-
-    .speaker-btn {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
-      backdrop-filter: blur(10px);
-    }
-
-    .speaker-btn:hover {
-      background: rgba(255, 255, 255, 0.3);
-    }
-
-    .speaker-btn.active {
-      background: rgba(255, 255, 255, 0.4);
-    }
-
-    @keyframes pulse {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-
-    .recording-indicator {
-      position: absolute;
-      top: 30px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(255, 68, 68, 0.9);
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.9em;
-      font-weight: 500;
-      display: none;
-      backdrop-filter: blur(10px);
-    }
-
-    .recording-indicator.show {
-      display: block;
-      animation: slideDown 0.3s ease;
-    }
-
-    @keyframes slideDown {
-      from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
-      to { transform: translateX(-50%) translateY(0); opacity: 1; }
-    }
-
-    .wave-animation {
-      position: absolute;
-      bottom: 200px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-    }
-
-    .wave-animation.show {
-      display: flex;
-      gap: 3px;
-    }
-
-    .wave-bar {
-      width: 3px;
-      height: 20px;
-      background: rgba(255, 255, 255, 0.6);
-      border-radius: 2px;
-      animation: wave 1.5s infinite ease-in-out;
-    }
-
-    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
-    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
-    .wave-bar:nth-child(4) { animation-delay: 0.3s; }
-    .wave-bar:nth-child(5) { animation-delay: 0.4s; }
-
-    @keyframes wave {
-      0%, 40%, 100% { transform: scaleY(0.4); }
-      20% { transform: scaleY(1); }
-    }
-
-    .typing-indicator {
-      display: none;
-      font-style: italic;
-      opacity: 0.8;
-    }
-
-    .typing-indicator.show {
-      display: block;
-      animation: fadeIn 0.3s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; }
-      to { opacity: 0.8; }
-    }
-
-    /* Mobile responsiveness */
-    @media (max-width: 480px) {
       .avatar {
-        width: 150px;
-        height: 150px;
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background-image: url("static/persona_images/luna.png");
+        background-size: cover;
+        background-position: center;
+        border: 4px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        margin-bottom: 30px;
+        transition: transform 0.3s ease;
+      }
+
+      .avatar.speaking {
+        transform: scale(1.05);
+        border-color: rgba(255, 255, 255, 0.8);
+        box-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
       }
 
       .contact-info h1 {
-        font-size: 2em;
+        font-size: 2.5em;
+        font-weight: 300;
+        margin-bottom: 10px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .call-status {
+        font-size: 1.2em;
+        opacity: 0.9;
+        margin-bottom: 20px;
+      }
+
+      .call-duration {
+        font-size: 1.1em;
+        opacity: 0.8;
+        font-weight: 300;
+      }
+
+      .transcript-area {
+        background: rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(10px);
+        border-radius: 20px;
+        padding: 20px;
+        margin: 20px 0;
+        max-height: 150px;
+        overflow-y: auto;
+        width: 100%;
+        max-width: 400px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .message {
+        margin: 8px 0;
+        padding: 8px 12px;
+        border-radius: 12px;
+        font-size: 0.95em;
+        line-height: 1.4;
+      }
+
+      .message.user {
+        background: rgba(255, 255, 255, 0.2);
+        text-align: right;
+        margin-left: 20px;
+      }
+
+      .message.bot {
+        background: rgba(0, 0, 0, 0.2);
+        text-align: left;
+        margin-right: 20px;
       }
 
       .controls {
-        gap: 20px;
+        display: flex;
+        justify-content: center;
+        gap: 30px;
+        margin-bottom: 20px;
       }
 
       .control-btn {
-        width: 60px;
-        height: 60px;
-        font-size: 22px;
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
       }
-    }
-  </style>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body>
-  <div class="call-container">
-    <div class="recording-indicator" id="recordingIndicator">
-      <i class="fas fa-circle" style="font-size: 8px; margin-right: 6px;"></i>
-      Recording
-    </div>
 
-    <div class="avatar-section">
-      <div class="avatar" id="avatar"></div>
-      <div class="contact-info">
-        <h1>Luna</h1>
-        <div class="call-status" id="callStatus">Press mic to start talking</div>
-        <div class="call-duration" id="callDuration">00:00</div>
+      .mic-btn {
+        background: #25d366;
+        color: white;
+      }
+
+      .mic-btn:hover {
+        background: #1ea952;
+        transform: scale(1.05);
+      }
+
+      .mic-btn.recording {
+        background: #ff4444;
+        animation: pulse 1.5s infinite;
+      }
+
+      .end-call-btn {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        /* margin: 20px; */
+        background: #9b2929;
+        color: white;
+      }
+
+      .end-call-btn:hover {
+        background: #cc0000;
+        transform: scale(1.05);
+      }
+
+      .speaker-btn {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        backdrop-filter: blur(10px);
+      }
+
+      .speaker-btn:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .speaker-btn.active {
+        background: rgba(255, 255, 255, 0.4);
+      }
+
+      @keyframes pulse {
+        0% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+        100% {
+          transform: scale(1);
+        }
+      }
+
+      .recording-indicator {
+        position: absolute;
+        top: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 68, 68, 0.9);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 500;
+        display: none;
+        backdrop-filter: blur(10px);
+      }
+
+      .recording-indicator.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+      }
+
+      @keyframes slideDown {
+        from {
+          transform: translateX(-50%) translateY(-20px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(-50%) translateY(0);
+          opacity: 1;
+        }
+      }
+
+      .wave-animation {
+        position: absolute;
+        bottom: 200px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: none;
+      }
+
+      .wave-animation.show {
+        display: flex;
+        gap: 3px;
+      }
+
+      .wave-bar {
+        width: 3px;
+        height: 20px;
+        background: rgba(255, 255, 255, 0.6);
+        border-radius: 2px;
+        animation: wave 1.5s infinite ease-in-out;
+      }
+
+      .wave-bar:nth-child(2) {
+        animation-delay: 0.1s;
+      }
+      .wave-bar:nth-child(3) {
+        animation-delay: 0.2s;
+      }
+      .wave-bar:nth-child(4) {
+        animation-delay: 0.3s;
+      }
+      .wave-bar:nth-child(5) {
+        animation-delay: 0.4s;
+      }
+
+      @keyframes wave {
+        0%,
+        40%,
+        100% {
+          transform: scaleY(0.4);
+        }
+        20% {
+          transform: scaleY(1);
+        }
+      }
+
+      .typing-indicator {
+        display: none;
+        font-style: italic;
+        opacity: 0.8;
+      }
+
+      .typing-indicator.show {
+        display: block;
+        animation: fadeIn 0.3s ease;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 0.8;
+        }
+      }
+
+      /* Mobile responsiveness */
+      @media (max-width: 480px) {
+        .avatar {
+          width: 150px;
+          height: 150px;
+        }
+
+        .contact-info h1 {
+          font-size: 2em;
+        }
+
+        .controls {
+          gap: 20px;
+        }
+
+        .control-btn {
+          width: 60px;
+          height: 60px;
+          font-size: 22px;
+        }
+      }
+    </style>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+  </head>
+  <body>
+    <button class="control-btn end-call-btn" id="endCallBtn" title="End Call">
+      <i class="fas fa-phone-slash"></i>
+    </button>
+    <div class="call-container">
+      <div class="recording-indicator" id="recordingIndicator">
+        <i class="fas fa-circle" style="font-size: 8px; margin-right: 6px"></i>
+        Recording
+      </div>
+
+      <div class="avatar-section">
+        <div class="avatar" id="avatar"></div>
+        <div class="contact-info">
+          <h1>Luna</h1>
+          <div class="call-status" id="callStatus">
+            Press mic to start talking
+          </div>
+          <div class="call-duration" id="callDuration">00:00</div>
+        </div>
+      </div>
+
+      <div class="wave-animation" id="waveAnimation">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+
+      <div class="transcript-area" id="transcriptArea">
+        <div class="typing-indicator" id="typingIndicator">
+          Luna is thinking...
+        </div>
+      </div>
+
+      <div class="controls">
+        <!-- <button class="control-btn speaker-btn" id="speakerBtn" title="Speaker">
+        <i class="fas fa-volume-up"></i>
+      </button> -->
+
+        <button class="control-btn mic-btn" id="micBtn" title="Microphone">
+          <i class="fas fa-microphone"></i>
+        </button>
       </div>
     </div>
 
-    <div class="wave-animation" id="waveAnimation">
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-      <div class="wave-bar"></div>
-    </div>
+    <audio id="player" style="display: none"></audio>
 
-    <div class="transcript-area" id="transcriptArea">
-      <div class="typing-indicator" id="typingIndicator">Luna is thinking...</div>
-    </div>
+    <script>
+      const avatar = document.getElementById("avatar");
+      const callStatus = document.getElementById("callStatus");
+      const callDuration = document.getElementById("callDuration");
+      const transcriptArea = document.getElementById("transcriptArea");
+      const typingIndicator = document.getElementById("typingIndicator");
+      const micBtn = document.getElementById("micBtn");
+      // const speakerBtn = document.getElementById('speakerBtn');
+      const endCallBtn = document.getElementById("endCallBtn");
+      const recordingIndicator = document.getElementById("recordingIndicator");
+      const waveAnimation = document.getElementById("waveAnimation");
+      const player = document.getElementById("player");
 
-    <div class="controls">
-      <button class="control-btn speaker-btn" id="speakerBtn" title="Speaker">
-        <i class="fas fa-volume-up"></i>
-      </button>
-      
-      <button class="control-btn mic-btn" id="micBtn" title="Microphone">
-        <i class="fas fa-microphone"></i>
-      </button>
-      
-      <button class="control-btn end-call-btn" id="endCallBtn" title="End Call">
-        <i class="fas fa-phone-slash"></i>
-      </button>
-    </div>
-  </div>
+      let isRecording = false;
+      let mediaRecorder;
+      let recordedChunks = [];
+      let callStartTime = Date.now();
+      let durationInterval;
+      let isSpeakerOn = true;
 
-  <audio id="player" style="display:none;"></audio>
-
-  <script>
-    const avatar = document.getElementById('avatar');
-    const callStatus = document.getElementById('callStatus');
-    const callDuration = document.getElementById('callDuration');
-    const transcriptArea = document.getElementById('transcriptArea');
-    const typingIndicator = document.getElementById('typingIndicator');
-    const micBtn = document.getElementById('micBtn');
-    const speakerBtn = document.getElementById('speakerBtn');
-    const endCallBtn = document.getElementById('endCallBtn');
-    const recordingIndicator = document.getElementById('recordingIndicator');
-    const waveAnimation = document.getElementById('waveAnimation');
-    const player = document.getElementById('player');
-
-    let isRecording = false;
-    let mediaRecorder;
-    let recordedChunks = [];
-    let callStartTime = Date.now();
-    let durationInterval;
-    let isSpeakerOn = true;
-
-    // Start call duration counter
-    function startCallDuration() {
-      durationInterval = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
-        const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
-        const seconds = (elapsed % 60).toString().padStart(2, '0');
-        callDuration.textContent = `${minutes}:${seconds}`;
-      }, 1000);
-    }
-
-    function appendMessage(isUser, text) {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
-      messageDiv.textContent = text;
-      transcriptArea.insertBefore(messageDiv, typingIndicator);
-      transcriptArea.scrollTop = transcriptArea.scrollHeight;
-    }
-
-    function showTyping() {
-      typingIndicator.classList.add('show');
-      avatar.classList.add('speaking');
-      waveAnimation.classList.add('show');
-    }
-
-    function hideTyping() {
-      typingIndicator.classList.remove('show');
-      avatar.classList.remove('speaking');
-      waveAnimation.classList.remove('show');
-    }
-
-    async function sendMessage(text) {
-      appendMessage(true, text);
-      showTyping();
-      callStatus.textContent = "Luna is responding...";
-
-      try {
-        const resp = await fetch("/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text })
-        });
-
-        if (!resp.ok) {
-          throw new Error('Network response was not ok');
-        }
-
-        const replyText = resp.headers.get("X-Reply-Text") || "I'm here to help";
-        hideTyping();
-        appendMessage(false, replyText);
-        callStatus.textContent = "Connected";
-
-        // Play audio response
-        const arrayBuffer = await resp.arrayBuffer();
-        const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
-        const url = URL.createObjectURL(blob);
-        player.src = url;
-        
-        if (isSpeakerOn) {
-          avatar.classList.add('speaking');
-          player.play();
-          
-          player.onended = () => {
-            avatar.classList.remove('speaking');
-          };
-        }
-      } catch (error) {
-        console.error('Error:', error);
-        hideTyping();
-        callStatus.textContent = "Connection error";
+      // Start call duration counter
+      function startCallDuration() {
+        durationInterval = setInterval(() => {
+          const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+          const minutes = Math.floor(elapsed / 60)
+            .toString()
+            .padStart(2, "0");
+          const seconds = (elapsed % 60).toString().padStart(2, "0");
+          callDuration.textContent = `${minutes}:${seconds}`;
+        }, 1000);
       }
-    }
 
-    // Microphone control
-    micBtn.onclick = async () => {
-      if (!isRecording) {
+      function appendMessage(isUser, text) {
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${isUser ? "user" : "bot"}`;
+        messageDiv.textContent = text;
+        transcriptArea.insertBefore(messageDiv, typingIndicator);
+        transcriptArea.scrollTop = transcriptArea.scrollHeight;
+      }
+
+      function showTyping() {
+        typingIndicator.classList.add("show");
+        avatar.classList.add("speaking");
+        waveAnimation.classList.add("show");
+      }
+
+      function hideTyping() {
+        typingIndicator.classList.remove("show");
+        avatar.classList.remove("speaking");
+        waveAnimation.classList.remove("show");
+      }
+
+      async function sendMessage(text) {
+        appendMessage(true, text);
+        showTyping();
+        callStatus.textContent = "Luna is responding...";
+
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' });
-          recordedChunks = [];
+          const resp = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text }),
+          });
 
-          mediaRecorder.ondataavailable = (e) => {
-            if (e.data.size > 0) recordedChunks.push(e.data);
-          };
-
-          mediaRecorder.start();
-          isRecording = true;
-          micBtn.classList.add('recording');
-          recordingIndicator.classList.add('show');
-          callStatus.textContent = "Listening...";
-          
-        } catch (err) {
-          console.error("Microphone access failed:", err);
-          callStatus.textContent = "Microphone access denied";
-        }
-      } else {
-        mediaRecorder.stop();
-        isRecording = false;
-        micBtn.classList.remove('recording');
-        recordingIndicator.classList.remove('show');
-        callStatus.textContent = "Processing...";
-
-        mediaRecorder.onstop = async () => {
-          const blob = new Blob(recordedChunks, { type: 'audio/webm;codecs=opus' });
-          const formData = new FormData();
-          formData.append("audio", blob, "clip.webm");
-
-          try {
-            const response = await fetch("/transcribe", {
-              method: "POST",
-              body: formData
-            });
-
-            const result = await response.json();
-            if (result.text) {
-              sendMessage(result.text.trim());
-            } else {
-              callStatus.textContent = "Couldn't understand that";
-              console.error("Transcription Error:", result.error);
-            }
-          } catch (err) {
-            callStatus.textContent = "Connection error";
-            console.error("Fetch failed:", err);
+          if (!resp.ok) {
+            throw new Error("Network response was not ok");
           }
 
-          recordedChunks = [];
-        };
-      }
-    };
+          const replyText =
+            resp.headers.get("X-Reply-Text") || "I'm here to help";
+          hideTyping();
+          appendMessage(false, replyText);
+          callStatus.textContent = "Connected";
 
-    // Speaker toggle
-    speakerBtn.onclick = () => {
-      isSpeakerOn = !isSpeakerOn;
-      speakerBtn.classList.toggle('active', isSpeakerOn);
-      const icon = speakerBtn.querySelector('i');
-      icon.className = isSpeakerOn ? 'fas fa-volume-up' : 'fas fa-volume-mute';
-      
-      if (!isSpeakerOn) {
-        player.pause();
-        avatar.classList.remove('speaking');
-      }
-    };
+          // Play audio response
+          const arrayBuffer = await resp.arrayBuffer();
+          const blob = new Blob([arrayBuffer], { type: "audio/mpeg" });
+          const url = URL.createObjectURL(blob);
+          player.src = url;
 
-    // End call
-    endCallBtn.onclick = () => {
-      if (confirm('End call?')) {
-        clearInterval(durationInterval);
-        // window.close();
-        //change url to /
-        window.location.href = '/';
-      }
-    };
+          if (isSpeakerOn) {
+            avatar.classList.add("speaking");
+            player.play();
 
-    // Initialize
-    startCallDuration();
-    speakerBtn.classList.add('active');
-  </script>
-</body>
+            player.onended = () => {
+              avatar.classList.remove("speaking");
+            };
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          hideTyping();
+          callStatus.textContent = "Connection error";
+        }
+      }
+
+      // Microphone control
+      micBtn.onclick = async () => {
+        if (!isRecording) {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+            });
+            mediaRecorder = new MediaRecorder(stream, {
+              mimeType: "audio/webm;codecs=opus",
+            });
+            recordedChunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+              if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.start();
+            isRecording = true;
+            micBtn.classList.add("recording");
+            recordingIndicator.classList.add("show");
+            callStatus.textContent = "Listening...";
+          } catch (err) {
+            console.error("Microphone access failed:", err);
+            callStatus.textContent = "Microphone access denied";
+          }
+        } else {
+          mediaRecorder.stop();
+          isRecording = false;
+          micBtn.classList.remove("recording");
+          recordingIndicator.classList.remove("show");
+          callStatus.textContent = "Processing...";
+
+          mediaRecorder.onstop = async () => {
+            const blob = new Blob(recordedChunks, {
+              type: "audio/webm;codecs=opus",
+            });
+            const formData = new FormData();
+            formData.append("audio", blob, "clip.webm");
+
+            try {
+              const response = await fetch("/transcribe", {
+                method: "POST",
+                body: formData,
+              });
+
+              const result = await response.json();
+              if (result.text) {
+                sendMessage(result.text.trim());
+              } else {
+                callStatus.textContent = "Couldn't understand that";
+                console.error("Transcription Error:", result.error);
+              }
+            } catch (err) {
+              callStatus.textContent = "Connection error";
+              console.error("Fetch failed:", err);
+            }
+
+            recordedChunks = [];
+          };
+        }
+      };
+
+      // // Speaker toggle
+      // speakerBtn.onclick = () => {
+      //   isSpeakerOn = !isSpeakerOn;
+      //   speakerBtn.classList.toggle('active', isSpeakerOn);
+      //   const icon = speakerBtn.querySelector('i');
+      //   icon.className = isSpeakerOn ? 'fas fa-volume-up' : 'fas fa-volume-mute';
+
+      //   if (!isSpeakerOn) {
+      //     player.pause();
+      //     avatar.classList.remove('speaking');
+      //   }
+      // };
+
+      // End call
+      endCallBtn.onclick = () => {
+        if (confirm("End call?")) {
+          clearInterval(durationInterval);
+          // window.close();
+          //change url to /
+          window.location.href = "/";
+        }
+      };
+
+      // Initialize
+      startCallDuration();
+      // speakerBtn.classList.add('active');
+    </script>
+  </body>
 </html>

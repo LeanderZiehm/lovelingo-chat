@@ -5,7 +5,7 @@ import uuid
 import subprocess
 import os
 
-transcribe_bp = Blueprint('transcribe', __name__)
+transcribe_bp = Blueprint("transcribe", __name__)
 
 # Whisper API configuration
 custom_whisper_api_key = "whisper.leanderziehm.com"
@@ -23,17 +23,25 @@ def save_uploaded_file(file, suffix=".webm"):
     return tmp_path
 
 
-
 def convert_webm_to_ogg(input_path, output_suffix=".ogg"):
     filename = uuid.uuid4().hex + output_suffix
     output_path = os.path.join(BASE_TMP_DIR, filename)
 
     ffmpeg_cmd = [
-        "ffmpeg", "-y",
-        "-f", "webm",           # force format
-        "-i", input_path,
-        "-vn", "-ar", "16000", "-ac", "1", "-c:a", "libvorbis",
-        output_path
+        "ffmpeg",
+        "-y",
+        "-f",
+        "webm",  # force format
+        "-i",
+        input_path,
+        "-vn",
+        "-ar",
+        "16000",
+        "-ac",
+        "1",
+        "-c:a",
+        "libvorbis",
+        output_path,
     ]
 
     result = subprocess.run(ffmpeg_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -49,12 +57,12 @@ def transcribe_audio_file(file_path, model):
         return response.text.strip()
 
 
-@transcribe_bp.route('/transcribe_v1', methods=['POST'])
+@transcribe_bp.route("/transcribe_v1", methods=["POST"])
 def transcribe():
-    if 'audio' not in request.files:
+    if "audio" not in request.files:
         return jsonify({"error": "No audio file uploaded"}), 400
 
-    webm_file = request.files['audio']
+    webm_file = request.files["audio"]
     webm_path = None
     ogg_path = None
 

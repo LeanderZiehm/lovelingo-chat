@@ -4,7 +4,7 @@ from flask import Blueprint, request, Response, render_template
 from groq import Groq
 from elevenlabs.client import ElevenLabs
 
-chat_bp = Blueprint('chat', __name__)
+chat_bp = Blueprint("chat", __name__)
 
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -16,15 +16,17 @@ ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 # initialize once at import
 groq = Groq(api_key=GROQ_API_KEY)
 eleven = ElevenLabs(api_key=ELEVENLABS_API_KEY)
-VOICE_ID = 'nDJIICjR9zfJExIFeSCN'
+VOICE_ID = "nDJIICjR9zfJExIFeSCN"
 # print("groq:", groq)
 # print("eleven:", eleven)
 
-@chat_bp.route('/chat', methods=['GET'])
-def chat_get():
-    return render_template('chat.html')
 
-@chat_bp.route('/tts', methods=['POST'])
+@chat_bp.route("/chat", methods=["GET"])
+def chat_get():
+    return render_template("chat.html")
+
+
+@chat_bp.route("/tts", methods=["POST"])
 def tts():
     data = request.get_json(silent=True) or {}
     user_msg = data.get("message")
@@ -33,16 +35,13 @@ def tts():
 
     # 1️⃣ Send user message to Groq
     resp = groq.chat.completions.create(
-        messages=[{"role": "user", "content": user_msg}],
-        model="llama3-8b-8192"
+        messages=[{"role": "user", "content": user_msg}], model="llama3-8b-8192"
     )
     reply = resp.choices[0].message.content
 
     # 2️⃣ Generate ElevenLabs TTS stream
     audio_stream = eleven.text_to_speech.stream(
-        text=reply,
-        voice_id=VOICE_ID,
-        model_id="eleven_multilingual_v2"
+        text=reply, voice_id=VOICE_ID, model_id="eleven_multilingual_v2"
     )
 
     def generate():
@@ -50,16 +49,11 @@ def tts():
             if isinstance(chunk, bytes):
                 yield chunk
 
-
     headers = {"X-Reply-Text": reply.replace("\n", " ")}
     return Response(generate(), mimetype="audio/mpeg", headers=headers)
 
 
-
-
-
-
-@chat_bp.route('/chat', methods=['POST'])
+@chat_bp.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json(silent=True) or {}
     user_msg = data.get("message")
@@ -68,23 +62,19 @@ def chat():
 
     # 1️⃣ Send user message to Groq
     resp = groq.chat.completions.create(
-        messages=[{"role": "user", "content": user_msg}],
-        model="llama3-8b-8192"
+        messages=[{"role": "user", "content": user_msg}], model="llama3-8b-8192"
     )
     reply = resp.choices[0].message.content
 
     # 2️⃣ Generate ElevenLabs TTS stream
     audio_stream = eleven.text_to_speech.stream(
-        text=reply,
-        voice_id=VOICE_ID,
-        model_id="eleven_multilingual_v2"
+        text=reply, voice_id=VOICE_ID, model_id="eleven_multilingual_v2"
     )
 
     def generate():
         for chunk in audio_stream:
             if isinstance(chunk, bytes):
                 yield chunk
-
 
     headers = {"X-Reply-Text": reply.replace("\n", " ")}
     return Response(generate(), mimetype="audio/mpeg", headers=headers)
