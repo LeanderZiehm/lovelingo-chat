@@ -49,7 +49,7 @@ def transcribe_audio_file(file_path, model):
         return response.text.strip()
 
 
-@transcribe_bp.route('/transcribe', methods=['POST'])
+@transcribe_bp.route('/transcribe_v1', methods=['POST'])
 def transcribe():
     if 'audio' not in request.files:
         return jsonify({"error": "No audio file uploaded"}), 400

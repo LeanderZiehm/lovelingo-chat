@@ -24,6 +24,41 @@ VOICE_ID = 'nDJIICjR9zfJExIFeSCN'
 def chat_get():
     return render_template('chat.html')
 
+@chat_bp.route('/tts', methods=['POST'])
+def tts():
+    data = request.get_json(silent=True) or {}
+    user_msg = data.get("message")
+    if not user_msg:
+        return {"error": "Missing 'message' in JSON body."}, 400
+
+    # 1️⃣ Send user message to Groq
+    resp = groq.chat.completions.create(
+        messages=[{"role": "user", "content": user_msg}],
+        model="llama3-8b-8192"
+    )
+    reply = resp.choices[0].message.content
+
+    # 2️⃣ Generate ElevenLabs TTS stream
+    audio_stream = eleven.text_to_speech.stream(
+        text=reply,
+        voice_id=VOICE_ID,
+        model_id="eleven_multilingual_v2"
+    )
+
+    def generate():
+        for chunk in audio_stream:
+            if isinstance(chunk, bytes):
+                yield chunk
+
+
+    headers = {"X-Reply-Text": reply.replace("\n", " ")}
+    return Response(generate(), mimetype="audio/mpeg", headers=headers)
+
+
+
+
+
+
 @chat_bp.route('/chat', methods=['POST'])
 def chat():
     data = request.get_json(silent=True) or {}

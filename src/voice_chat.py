@@ -351,31 +351,3 @@ def transcribe():
                     logger.info(f"Cleaned up temporary file: {temp_path}")
                 except Exception as e:
                     logger.warning(f"Failed to clean up {temp_path}: {e}")
-
-@voice_chat_bp.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    
-    status = {
-        "whisper_client": client is not None,
-        "ffmpeg": audio_processor.check_ffmpeg(),
-        "timestamp": time.time()
-    }
-    
-    if all(status.values()):
-        return jsonify({"status": "healthy", "checks": status}), 200
-    else:
-        return jsonify({"status": "unhealthy", "checks": status}), 503
-
-@voice_chat_bp.route('/debug', methods=['GET'])
-def debug_info():
-    """Debug information endpoint"""
-    
-    return jsonify({
-        "whisper_url": CUSTOM_WHISPER_URL,
-        "model": MODEL,
-        "max_file_size": MAX_FILE_SIZE,
-        "supported_formats": list(SUPPORTED_FORMATS),
-        "ffmpeg_available": audio_processor.check_ffmpeg(),
-        "whisper_client_initialized": client is not None
-    })
