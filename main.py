@@ -21,7 +21,13 @@ app.register_blueprint(voice_chat_bp)  # register the voice chat blueprint
 
 @app.route('/')
 def index():
+    return render_template('chat_v2.html')
+
+@app.route('/v1')
+def v1():
     return render_template('chat.html')
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
