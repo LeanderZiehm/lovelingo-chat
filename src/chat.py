@@ -3,7 +3,7 @@ import os
 from flask import Blueprint, request, Response, render_template
 from groq import Groq
 from elevenlabs.client import ElevenLabs
-
+import requests
 chat_bp = Blueprint("chat", __name__)
 
 
@@ -11,6 +11,19 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 # print("GROQ_API_KEY:", GROQ_API_KEY)
 # print(ELEVENLABS_API_KEY)
+
+GOOGLE_DOC_TXT_URL = "https://docs.google.com/document/d/1qz-3McunkpMIeKfoipANVMW4iZzZWHSVdAA1nhfa8lE/export?format=txt"
+
+def fetch_system_prompt():
+    try:
+        response = requests.get(GOOGLE_DOC_TXT_URL)
+        if response.status_code == 200:
+            return response.text.strip()
+        else:
+            return "Du bist ein Deutschlehrer."  # Fallback minimal prompt
+    except Exception:
+        return "Du bist ein Deutschlehrer."  # Fallback minimal prompt
+
 
 
 # initialize once at import
@@ -47,6 +60,7 @@ def tts():
     return Response(generate(), mimetype="audio/mpeg", headers=headers)
 
 
+
 @chat_bp.route("/chat", methods=["POST"])
 def chat():
     data = request.get_json(silent=True) or {}
@@ -54,7 +68,7 @@ def chat():
     if not user_msg:
         return {"error": "Missing 'message' in JSON body."}, 400
 
-    system_prompt = "Du bist ein deutsch lehrer Chatbot namens Luna und hilfst den Nutzern beim Deutsch lernen. Du antwortest auf Deutsch A1 level und English gemüscht. Deine Antworten sind kurz und präzise. Wenn der nutzer in einer anderen Sprache schreibt kannst du auch beispiele geben von der sprache zu Deutsch."
+    system_prompt = fetch_system_prompt()
 
     # 1️⃣ Send user message to Groq
     resp = groq.chat.completions.create(
