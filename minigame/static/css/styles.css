@@ -1,0 +1,156 @@
+    html, body {
+      margin: 0; height: 100%; overflow: hidden;
+      font-family: sans-serif;
+      background: #f0f0f0;
+      user-select: none;
+    }
+
+    /* The main player square */
+    #player {
+      position: absolute;
+      width: 50px;  
+      height: 50px;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 10000; /* higher than shapes */
+      pointer-events: none; /* so clicks pass through */
+      user-select: none;
+    }
+
+    #player img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    /* Container for inputs */
+    #inputs {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 15px;
+      background: rgba(255,255,255,0.9);
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+    #inputs label {
+      font-size: 14px;
+      display: flex;
+      flex-direction: column;
+    }
+    #inputs input[type=number] {
+      width: 80px;
+      font-size: 16px;
+      padding: 5px;
+    }
+
+    /* Button container */
+    #buttons {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      background: rgba(255,255,255,0.9);
+      padding: 10px 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
+
+    button {
+      padding: 8px 14px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+      user-select: none;
+      transition: background-color 0.2s ease;
+    }
+    button:focus {
+      outline: 2px solid #333;
+    }
+
+    /* Colors */
+    .btn-green { background: #28a745; color: white; }
+    .btn-red { background: #dc3545; color: white; }
+    .btn-blue { background: #007bff; color: white; }
+    .btn-yellow { background: #ffc107; color: black; }
+
+    /* Shapes */
+    .btn-triangle { background: #6f42c1; color: white; }
+    .btn-square { background: #343a40; color: white; }
+    .btn-circle { background: #fd7e14; color: white; }
+
+    /* Set Position Button */
+    #btn-setpos {
+      background: #17a2b8; color: white;
+      font-weight: bold;
+    }
+
+    /* The environment shapes */
+    .shape {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      opacity: 0.9;
+      box-shadow: 0 0 6px rgba(0,0,0,0.2);
+      cursor: default;
+      user-select: none;
+    }
+    /* Square shape */
+    .shape.square {
+      background-color: steelblue;
+    }
+    /* Circle shape */
+    .shape.circle {
+      background-color: orange;
+      border-radius: 50%;
+    }
+    /* Triangle shape using CSS */
+    .shape.triangle {
+      width: 0;
+      height: 0;
+      border-left: 30px solid transparent;
+      border-right: 30px solid transparent;
+      border-bottom: 60px solid purple;
+      background: none;
+      box-shadow: none;
+    }
+
+    /* Position label for shapes and player */
+    .pos-label {
+      position: absolute;
+      top: 62px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 12px;
+      color: #333;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    /* Language toggle container */
+    #lang-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 11000;
+      background: white;
+      padding: 5px 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.2);
+      user-select: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }

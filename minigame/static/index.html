@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Combo Teleport Example</title>
+  <link rel="stylesheet" href="static/css/styles.css"/>
+</head>
+<body>
+
+  <!-- Language toggle -->
+  <div id="lang-toggle">
+    <label for="languageSelect" id="lang-label">Language</label>
+    <select id="languageSelect">
+      <option value="en">English</option>
+      <option value="de">Deutsch</option>
+    </select>
+  </div>
+
+  <!-- Main player -->
+  <div id="player" style="position:absolute;">
+    <img src="static/player.png" alt="Player"/>
+    <div class="pos-label" id="player-pos-label">(0, 0)</div>
+  </div>
+
+  <!-- Inputs for X Y -->
+  <div id="inputs">
+    <label id="labelX">
+      X:
+      <input type="number" id="inputX" value="0" step="1"/>
+    </label>
+    <label id="labelY">
+      Y:
+      <input type="number" id="inputY" value="0" step="1"/>
+    </label>
+  </div>
+
+  <!-- Buttons -->
+  <div id="buttons">
+    <button id="btn-setpos">Set Position To</button>
+    <!-- Colors -->
+    <button class="btn-green" data-type="color" data-value="green">Green</button>
+    <button class="btn-red" data-type="color" data-value="red">Red</button>
+    <button class="btn-blue" data-type="color" data-value="blue">Blue</button>
+    <button class="btn-yellow" data-type="color" data-value="yellow">Yellow</button>
+    <!-- Shapes -->
+    <button class="btn-triangle" data-type="shape" data-value="triangle">Triangle</button>
+    <button class="btn-square" data-type="shape" data-value="square">Square</button>
+    <button class="btn-circle" data-type="shape" data-value="circle">Circle</button>
+  </div>
+
+  <!-- Translations and language data -->
+  <script src="static/js/translations.js"></script>
+
+  <script type="module">
+    import { createEnvironment, environmentObjects } from './static/js/create_shapes.js';
+
+    // Elements
+    const player = document.getElementById('player');
+    const playerPosLabel = document.getElementById('player-pos-label');
+    let inputX = document.getElementById('inputX');
+    let inputY = document.getElementById('inputY');
+
+    const btnSetPos = document.getElementById('btn-setpos');
+    const buttons = document.querySelectorAll('#buttons button:not(#btn-setpos)');
+
+    const labelX = document.getElementById('labelX');
+    const labelY = document.getElementById('labelY');
+
+    const langLabel = document.getElementById('lang-label');
+    const languageSelect = document.getElementById('languageSelect');
+    const defaultLanguage = 'de'
+    let currentLang = defaultLanguage;  // set German as default
+    languageSelect.value = defaultLanguage; // update select box to German
+
+    // Create the environment shapes
+    createEnvironment();
+
+    // Combo logic
+    let comboStep = 0;
+    let chosenColor = null;
+
+    btnSetPos.addEventListener('click', () => {
+      comboStep = 1;
+      chosenColor = null;
+      updateButtonHighlights();
+    });
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(comboStep === 0) {
+          alert(translations.alerts.pressSetPosFirst[currentLang]);
+          return;
+        }
+        const type = btn.dataset.type;
+        const value = btn.dataset.value;
+
+        if(comboStep === 1 && type === 'color') {
+          chosenColor = value;
+          comboStep = 2;
+          updateButtonHighlights();
+        } else if(comboStep === 2 && type === 'shape') {
+          const exists = environmentObjects.some(obj => obj.color === chosenColor && obj.shape === value);
+          if(exists) {
+            teleportPlayer();
+            const msg = translations.alerts.teleportSuccess[currentLang]
+              .replace('{x}', inputX.value)
+              .replace('{y}', inputY.value)
+              .replace('{color}', translations.buttons.colors[chosenColor][currentLang])
+              .replace('{shape}', translations.buttons.shapes[value][currentLang]);
+            alert(msg);
+          } else {
+            const msg = translations.alerts.comboFailed[currentLang]
+              .replace('{color}', translations.buttons.colors[chosenColor][currentLang])
+              .replace('{shape}', translations.buttons.shapes[value][currentLang]);
+            alert(msg);
+          }
+          comboStep = 0;
+          chosenColor = null;
+          updateButtonHighlights();
+        } else {
+          alert(translations.alerts.wrongOrder[currentLang]);
+          comboStep = 0;
+          chosenColor = null;
+          updateButtonHighlights();
+        }
+      });
+    });
+
+    // Teleport player relative to center of viewport plus input offsets
+    function teleportPlayer() {
+      const x = parseInt(inputX.value, 10) || 0;
+      const y = parseInt(inputY.value, 10) || 0;
+
+      const centerX = window.innerWidth / 2;
+      const centerY = window.innerHeight / 2;
+
+      // Calculate position, subtract half player size for centering
+      const left = centerX + x - player.offsetWidth / 2;
+      const top = centerY + y - player.offsetHeight / 2;
+
+      player.style.left = left + 'px';
+      player.style.top = top + 'px';
+      player.style.transform = ''; // remove translate to allow precise positioning
+
+      // Update label above player
+      const labelTemplate = translations.playerPositionLabel[currentLang];
+      playerPosLabel.textContent = labelTemplate.replace('{x}', x).replace('{y}', y);
+    }
+
+    // Update player position whenever input values change (optional: debounce if needed)
+    function onInputChange() {
+      if(comboStep === 0) {
+        teleportPlayer();
+      }
+    }
+    inputX.addEventListener('input', onInputChange);
+    inputY.addEventListener('input', onInputChange);
+
+    function updateButtonHighlights() {
+      btnSetPos.style.opacity = '1';
+      buttons.forEach(btn => btn.style.opacity = '1');
+
+      if(comboStep === 1) {
+        // Waiting for color - highlight color buttons only
+        buttons.forEach(btn => {
+          if(btn.dataset.type === 'color') btn.style.opacity = '1';
+          else btn.style.opacity = '0.5';
+        });
+        btnSetPos.style.opacity = '0.5';
+      } else if(comboStep === 2) {
+        // Waiting for shape - highlight shape buttons only
+        buttons.forEach(btn => {
+          if(btn.dataset.type === 'shape') btn.style.opacity = '1';
+          else btn.style.opacity = '0.5';
+        });
+        btnSetPos.style.opacity = '0.5';
+      } else {
+        // Reset all buttons
+        buttons.forEach(btn => btn.style.opacity = '1');
+        btnSetPos.style.opacity = '1';
+      }
+    }
+
+    // Language switching logic
+    function updateTexts() {
+      // Update lang label
+      langLabel.textContent = translations.languageToggle.label[currentLang];
+
+      // Update inputs labels
+      labelX.textContent = translations.inputs.labelX[currentLang];
+      labelY.textContent = translations.inputs.labelY[currentLang];
+
+      // Append colon and input fields inside labels
+      labelX.innerHTML = `${translations.inputs.labelX[currentLang]}:<input type="number" id="inputX" value="${inputX.value}" step="1" />`;
+      labelY.innerHTML = `${translations.inputs.labelY[currentLang]}:<input type="number" id="inputY" value="${inputY.value}" step="1" />`;
+
+      // Reassign inputs after recreating label innerHTML
+      // Remove old listeners
+      inputX.removeEventListener('input', onInputChange);
+      inputY.removeEventListener('input', onInputChange);
+
+      // Replace references
+      inputX = labelX.querySelector('input');
+      inputY = labelY.querySelector('input');
+
+      // Add new listeners
+      inputX.addEventListener('input', onInputChange);
+      inputY.addEventListener('input', onInputChange);
+
+      // Update buttons text
+      btnSetPos.textContent = translations.buttons.setPosition[currentLang];
+
+      buttons.forEach(btn => {
+        const type = btn.dataset.type;
+        const value = btn.dataset.value;
+
+        if(type === 'color') {
+          btn.textContent = translations.buttons.colors[value][currentLang];
+        } else if(type === 'shape') {
+          btn.textContent = translations.buttons.shapes[value][currentLang];
+        }
+      });
+
+      // Update player position label
+      const xVal = parseInt(inputX.value, 10) || 0;
+      const yVal = parseInt(inputY.value, 10) || 0;
+      const labelTemplate = translations.playerPositionLabel[currentLang];
+      playerPosLabel.textContent = labelTemplate.replace('{x}', xVal).replace('{y}', yVal);
+
+      // Update document title
+      document.title = translations.title[currentLang];
+    }
+
+    languageSelect.addEventListener('change', () => {
+      currentLang = languageSelect.value;
+      updateTexts();
+    });
+
+    // Initialize page text on load
+    updateTexts();
+
+    // Initial teleport to center + 0,0
+    teleportPlayer();
+
+  </script>
+</body>
+</html>

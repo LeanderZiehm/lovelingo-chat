@@ -102,3 +102,14 @@ python3 TTS/server/server.py --model_name tts_models/en/vctk/vits # To start a s
 https://github.com/nazdridoy/kokoro-tts
 
 https://github.com/devnen/Chatterbox-TTS-Server
+
+
+
+
+
+
+# Presentation PDF generation
+
+pandoc -s -o presentation.pdf presentation.md
+pandoc -t beamer -o presentation2.pdf presentation.md
+marp presentation.md --pdf
