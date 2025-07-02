@@ -113,3 +113,7 @@ https://github.com/devnen/Chatterbox-TTS-Server
 pandoc -s -o presentation.pdf presentation.md
 pandoc -t beamer -o presentation2.pdf presentation.md
 marp presentation.md --pdf
+
+
+
+pdflatex personal_paper.tex
