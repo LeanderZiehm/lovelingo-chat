@@ -534,6 +534,15 @@
           margin-bottom: 15px;
         }
       }
+
+
+.profile-img {
+  width: 100px;      /* WhatsApp-style size */
+  height: 100px;
+  border-radius: 50%;  /* Makes the image circular */
+  object-fit: cover;   /* Ensures the image covers the whole circle */
+  margin-right: 10px;
+}
     </style>
     <link
       rel="stylesheet"
@@ -542,7 +551,10 @@
   </head>
   <body>
     <div class="chat-header">
-      <h1>LoveLingo Chat</h1>
+       <img src="/static/persona_images/luna.png" class="profile-img">
+       <h1 style="font-weight: 500;" >Lea</h1>
+  
+  
       <button id="call-btn">
         <i class="fas fa-phone-alt"></i>
       </button>
@@ -983,7 +995,7 @@
       setTimeout(() => {
         appendMessage(
           "bot",
-          "Hallo. I am Luna your personal Deutsch tutor.  What is you Deutsch level and what would you like to learn today?"
+          "Hallo. I am Lea your personal Deutsch tutor.  What is you Deutsch level and what would you like to learn today?"
         );
       }, 500);
     </script>

@@ -4,11 +4,14 @@ from flask import Blueprint, request, Response, render_template
 from groq import Groq
 from elevenlabs.client import ElevenLabs
 import requests
+from src.key_management import get_groq_api_key, get_elevenlabs_api_key
+
 chat_bp = Blueprint("chat", __name__)
 
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
+
+# GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+# ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
 # print("GROQ_API_KEY:", GROQ_API_KEY)
 # print(ELEVENLABS_API_KEY)
 
@@ -27,11 +30,16 @@ def fetch_system_prompt():
 
 
 # initialize once at import
-groq = Groq(api_key=GROQ_API_KEY)
-eleven = ElevenLabs(api_key=ELEVENLABS_API_KEY)
+
+# eleven = ElevenLabs(api_key=ELEVENLABS_API_KEY)
 VOICE_ID = "nDJIICjR9zfJExIFeSCN"
-# print("groq:", groq)
-# print("eleven:", eleven)
+
+
+def get_groq():
+    return Groq(api_key=get_groq_api_key())
+    
+def get_elevenlabs():
+    return ElevenLabs(api_key=get_elevenlabs_api_key())
 
 
 @chat_bp.route("/chat", methods=["GET"])
@@ -47,7 +55,7 @@ def tts():
         return {"error": "Missing 'text' in JSON body."}, 400
     
     # Generate ElevenLabs TTS stream
-    audio_stream = eleven.text_to_speech.stream(
+    audio_stream = get_elevenlabs().text_to_speech.stream(
         text=text, voice_id=VOICE_ID, model_id="eleven_multilingual_v2"
     )
 
@@ -71,13 +79,13 @@ def chat():
     system_prompt = fetch_system_prompt()
 
     # 1️⃣ Send user message to Groq
-    resp = groq.chat.completions.create(
+    resp = get_groq().chat.completions.create(
         messages=[{"role":"system","content":system_prompt}, {"role": "user", "content": user_msg}], model="llama-3.3-70b-versatile"
     )
     reply = resp.choices[0].message.content
 
     # 2️⃣ Generate ElevenLabs TTS stream
-    audio_stream = eleven.text_to_speech.stream(
+    audio_stream = get_elevenlabs().text_to_speech.stream(
         text=reply, voice_id=VOICE_ID, model_id="eleven_multilingual_v2"
     )
 

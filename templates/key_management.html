@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>API Key Manager</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, button { padding: 10px; margin: 5px 0; width: 100%; }
+    .status { margin-top: 20px; }
+  </style>
+</head>
+<body>
+
+  <h1>API Key Manager</h1>
+
+  <div>
+    <h3>Current API Keys</h3>
+    <p><strong>Groq Key:</strong> <span id="groq_status">Loading...</span></p>
+    <p><strong>ElevenLabs Key:</strong> <span id="elevenlabs_status">Loading...</span></p>
+  </div>
+
+  <hr>
+
+  <div>
+    <h3>Update API Keys</h3>
+    <form id="keyForm">
+      <input type="text" id="groq_key" placeholder="New Groq API Key">
+      <input type="text" id="elevenlabs_key" placeholder="New ElevenLabs API Key">
+      <button type="submit">Update Keys</button>
+    </form>
+    <p id="response_message"></p>
+  </div>
+
+  <script>
+    async function loadKeyStatus() {
+      try {
+        const res = await fetch('/api/keys');
+        const data = await res.json();
+        document.getElementById('groq_status').textContent = data.groq_set || 'Not Set';
+        document.getElementById('elevenlabs_status').textContent = data.elevenlabs_set || 'Not Set';
+      } catch (error) {
+        console.error('Error loading keys:', error);
+      }
+    }
+
+    document.getElementById('keyForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const groq_key = document.getElementById('groq_key').value;
+      const elevenlabs_key = document.getElementById('elevenlabs_key').value;
+
+      const res = await fetch('/api/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groq_key, elevenlabs_key })
+      });
+
+      const result = await res.json();
+      document.getElementById('response_message').textContent = result.message;
+      loadKeyStatus(); // Refresh the display
+    });
+
+    // Initial load
+    loadKeyStatus();
+  </script>
+
+</body>
+</html>

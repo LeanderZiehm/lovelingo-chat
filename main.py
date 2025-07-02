@@ -5,26 +5,24 @@ import os
 
 load_dotenv()
 
-# Check required environment variables
-required_env_vars = ["ELEVENLABS_API_KEY", "GROQ_API_KEY"]
-for var in required_env_vars:
-    assert os.getenv(
-        var
-    ), f"Missing required environment variable: {var}. Please create a .env file with these variables before running this script. The links to get the free api keys is in the readme in the section setup dev."
-
 from src.chat import chat_bp
 from src.transcribe_v2 import transcribe_bp  # import the voice chat blueprint
-
+from src.key_management import key_bp  # Add this line
 
 app = Flask(__name__)
 app.register_blueprint(chat_bp)
 app.register_blueprint(transcribe_bp)  # register the voice chat blueprint
+app.register_blueprint(key_bp)  # Register the key management blueprint
+
 
 
 @app.route("/")
 def index():
     return render_template("chat_v2.html")
 
+@app.route("/key")
+def key_management():
+    return render_template("key_management.html")
 
 @app.route("/v1")
 def v1():
@@ -44,6 +42,8 @@ def persona():
 @app.route("/voice2voice")
 def voice2voice():
     return render_template("persona.html")
+
+
 
 
 if __name__ == "__main__":
