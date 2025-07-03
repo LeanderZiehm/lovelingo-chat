@@ -1,5 +1,5 @@
 # app.py
-from flask import Flask, render_template
+from flask import Flask, render_template,send_from_directory
 from dotenv import load_dotenv
 import os
 
@@ -48,7 +48,11 @@ def persona():
 def voice2voice():
     return render_template("persona.html")
 
-
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(
+        app.static_folder, 'favicon.ico', mimetype='image/vnd.microsoft.icon'
+    )
 
 
 if __name__ == "__main__":
