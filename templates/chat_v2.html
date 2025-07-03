@@ -552,9 +552,10 @@
   <body>
     <div class="chat-header">
        <img src="/static/persona_images/luna.png" class="profile-img">
-       <h1 style="font-weight: 500;" >Lea</h1>
+       <h1 style="font-weight: 500;" >Luna</h1>
   
-  
+  <button id="game-btn" ><i class="fa-solid fa-gamepad"></i></button>
+
       <button id="call-btn">
         <i class="fas fa-phone-alt"></i>
       </button>
@@ -628,6 +629,11 @@
       let analyser;
       let microphone;
       let dataArray;
+
+
+ document.getElementById('game-btn').addEventListener("click", () => {
+  window.open("https://lovelingo-game.leanderziehm.com/", "_blank");
+});
 
       // Create visualizer bars
       for (let i = 0; i < 20; i++) {
@@ -995,7 +1001,7 @@
       setTimeout(() => {
         appendMessage(
           "bot",
-          "Hallo. I am Lea your personal Deutsch tutor.  What is your Deutsch level and what would you like to learn today?"
+          "Hallo. I am Luna your personal Deutsch tutor.  What is your Deutsch level and what would you like to learn today?"
         );
       }, 500);
     </script>
