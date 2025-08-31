@@ -1,7 +1,12 @@
 # Love Lingo
 
-![image](https://github.com/user-attachments/assets/e21d944d-9c7b-4915-a5d9-e7cd9fb65649)
-![image](https://github.com/user-attachments/assets/b8db8097-e479-49bc-84dd-fa4da335440e)
+<img width="1920" height="5039" alt="image" src="https://github.com/user-attachments/assets/e6a41857-c6e4-4260-a354-f59d5bca5b42" />
+
+<img width="1920" height="1080" alt="Screenshot From 2025-08-31 19-30-49" src="https://github.com/user-attachments/assets/400caefc-28c0-424f-9d6d-a1aa90a948d4" />
+
+
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/7d89ac7d-00cb-4a34-b445-69dfbcf030d8" />
+
 
 # setup
 
